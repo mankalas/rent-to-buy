@@ -1,8 +1,8 @@
 module RentToBuy exposing (main)
 
 import Browser
-import Html exposing (Html, button, div, h1, input, li, p, table, tbody, td, text, th, thead, tr, ul)
-import Html.Attributes exposing (class, colspan, disabled, placeholder, style, value)
+import Html exposing (Html, button, div, h1, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
+import Html.Attributes exposing (class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Loan as Loan exposing (Model, updateAmount, updateRate, updateTerm)
@@ -35,6 +35,7 @@ type Constraint
 type alias House =
     { value : Float
     , ratePerAnnum : Float
+    , extras : Float
     }
 
 
@@ -207,6 +208,20 @@ viewError error =
 
         Just e ->
             text e
+
+
+viewConstraint : Model -> Html Msg
+viewConstraint model =
+    div []
+        [ label [ for "h_constraint" ] [ text "House" ]
+        , input
+            [ type_ "radio", name "p_constraint" ]
+            []
+        , label [ for "p_constraint" ] [ text "Payment" ]
+        , input
+            [ type_ "radio", name "h_constraint" ]
+            []
+        ]
 
 
 viewLoan : Model -> Html Msg
@@ -427,7 +442,8 @@ view model =
     div []
         [ div [ class "error" ] []
         , div []
-            [ viewHouse model
+            [ viewConstraint model
+            , viewHouse model
             , viewLoan model
             , viewDeposit model
             , viewInsurance model
