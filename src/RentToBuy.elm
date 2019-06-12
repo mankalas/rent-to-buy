@@ -88,7 +88,7 @@ init _ =
     ( Model
         (House 500000.0 0.1 0)
         (Deposit 10000.0 50)
-        (Loan.Model 500000 (12 * 20) 0.06)
+        (Loan.Model 500000 20 0.06)
         3000
         3000
         650.0
@@ -247,7 +247,7 @@ viewLoan model =
             , tr []
                 [ th [] [ text "Amount" ]
                 , th [] [ text "Rate" ]
-                , th [] [ text "Term (m.)" ]
+                , th [] [ text "Term (y.)" ]
                 ]
             ]
         , tbody []
@@ -270,7 +270,7 @@ viewLoan model =
                     ]
                 , td []
                     [ input
-                        [ placeholder "Term (months)"
+                        [ placeholder "Term (years)"
                         , value <| String.fromInt model.loan.term
                         , onInput ChangeLoanTerm
                         ]
@@ -473,55 +473,55 @@ h =
 
 padding : Float
 padding =
-    30
+    50
 
 
-xScale : ContinuousScale Time.Posix
+xScale : ContinuousScale Float
 xScale =
-    Scale.time Time.utc ( 0, w - 2 * padding ) ( Time.millisToPosix 1560377806000, Time.millisToPosix 1560379506000 )
+    Scale.linear ( 0, w - 2 * padding ) ( now_y, toFloat <| now_y + 20 )
 
 
 yScale : ContinuousScale Float
 yScale =
-    Scale.linear ( h - 2 * padding, 0 ) ( 0, 5 )
+    Scale.linear ( h - 2 * padding, 0 ) ( 0, 500000 )
 
 
-xAxis : List ( Time.Posix, Float ) -> Svg msg
+xAxis : List ( Int, Float ) -> Svg msg
 xAxis model =
     Axis.bottom [ Axis.tickCount (List.length model) ] xScale
 
 
 yAxis : Svg msg
 yAxis =
-    Axis.left [ Axis.tickCount 5 ] yScale
+    Axis.left [ Axis.tickCount 10 ] yScale
 
 
-transformToLineData : ( Time.Posix, Float ) -> Maybe ( Float, Float )
+transformToLineData : ( Int, Float ) -> Maybe ( Float, Float )
 transformToLineData ( x, y ) =
-    Just ( Scale.convert xScale x, Scale.convert yScale y )
+    Just ( Scale.convert xScale (toFloat x), Scale.convert yScale y )
 
 
-tranfromToAreaData : ( Time.Posix, Float ) -> Maybe ( ( Float, Float ), ( Float, Float ) )
+tranfromToAreaData : ( Int, Float ) -> Maybe ( ( Float, Float ), ( Float, Float ) )
 tranfromToAreaData ( x, y ) =
     Just
-        ( ( Scale.convert xScale x, Tuple.first (Scale.rangeExtent yScale) )
-        , ( Scale.convert xScale x, Scale.convert yScale y )
+        ( ( Scale.convert xScale (toFloat x), Tuple.first (Scale.rangeExtent yScale) )
+        , ( Scale.convert xScale (toFloat x), Scale.convert yScale y )
         )
 
 
-line : List ( Time.Posix, Float ) -> Path
+line : List ( Int, Float ) -> Path
 line model =
     List.map transformToLineData model
         |> Shape.line Shape.monotoneInXCurve
 
 
-area : List ( Time.Posix, Float ) -> Path
+area : List ( Int, Float ) -> Path
 area model =
     List.map tranfromToAreaData model
         |> Shape.area Shape.monotoneInXCurve
 
 
-viewGraph : List ( Time.Posix, Float ) -> Svg msg
+viewGraph : List ( Int, Float ) -> Svg msg
 viewGraph model =
     svg [ viewBox 0 0 w h ]
         [ g [ transform [ Translate (padding - 1) (h - padding) ] ]
@@ -535,11 +535,31 @@ viewGraph model =
         ]
 
 
-timeSeries =
-    [ ( Time.millisToPosix 1560377806000, 4.3 )
-    , ( Time.millisToPosix 1560379106000, 6.3 )
-    , ( Time.millisToPosix 1560379506000, 41.3 )
-    ]
+now_y =
+    2019
+
+
+weeks_in_year =
+    52.1429
+
+
+timeSeries model =
+    let
+        loan =
+            model.loan
+
+        pay =
+            model.wPayment
+
+        l =
+            loan.amount :: List.repeat loan.term 0.0
+
+        combine n f =
+            ( now_y + n
+            , max 0 <| loan.amount * (1 + loan.ratePerAnnum) - (pay * weeks_in_year * toFloat n)
+            )
+    in
+    List.indexedMap combine l
 
 
 view : Model -> Html Msg
@@ -555,7 +575,7 @@ view model =
             , viewTax model
             , viewContract model
             , viewPayment model
-            , viewGraph timeSeries
+            , viewGraph <| timeSeries model
             ]
         ]
 
