@@ -75,7 +75,7 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Model
-        (House 500000.0 0.1)
+        (House 500000.0 0.1 0)
         (Deposit 10000.0 50)
         (Loan.Model 500000 (12 * 20) 0.06)
         3000
@@ -95,6 +95,7 @@ init _ =
 type Msg
     = None
     | ChangeHouseRate String
+    | ChangeHouseExtras String
     | ChangeHouseValue String
     | ChangeLoanAmount String
     | ChangeLoanRate String
@@ -122,7 +123,7 @@ updateHouseRate : Model -> String -> Model
 updateHouseRate m s =
     let
         res_h =
-            updateFloat s m.house "Bad house rate" (\r -> House m.house.value r)
+            updateFloat s m.house "Bad house rate" (\r -> House m.house.value r m.house.extras)
 
         up new_h =
             { m | house = new_h }
@@ -137,7 +138,7 @@ updateHouseValue : Model -> String -> Model
 updateHouseValue m s =
     let
         res_h =
-            updateFloat s m.house "Bad house value" (\v -> House v m.house.ratePerAnnum)
+            updateFloat s m.house "Bad house value" (\v -> House v m.house.ratePerAnnum m.house.extras)
 
         up new_h =
             { m | house = new_h }
@@ -160,6 +161,9 @@ update msg model =
             ( model, Cmd.none )
 
         ChangeHouseRate s ->
+            ( updateHouseRate model s, Cmd.none )
+
+        ChangeHouseExtras s ->
             ( updateHouseRate model s, Cmd.none )
 
         ChangeHouseValue s ->
@@ -275,6 +279,7 @@ viewHouse model =
             , tr []
                 [ th [] [ text "Value" ]
                 , th [] [ text "Rate" ]
+                , th [] [ text "Extras" ]
                 ]
             ]
         , tbody []
@@ -292,6 +297,14 @@ viewHouse model =
                         [ placeholder "Market rate"
                         , value <| String.fromFloat model.house.ratePerAnnum
                         , onInput ChangeHouseRate
+                        ]
+                        []
+                    ]
+                , td []
+                    [ input
+                        [ placeholder "Extras"
+                        , value <| String.fromFloat model.house.extras
+                        , onInput ChangeHouseExtras
                         ]
                         []
                     ]
@@ -440,7 +453,7 @@ viewPayment model =
 view : Model -> Html Msg
 view model =
     div []
-        [ div [ class "error" ] []
+        [ div [ class [ "error" ] ] []
         , div []
             [ viewConstraint model
             , viewHouse model
