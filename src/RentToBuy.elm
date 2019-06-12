@@ -121,10 +121,10 @@ update msg model =
             ( model, Cmd.none )
 
         ChangeHouseRate s ->
-            ( updateHouse model <| House.updateRate s model.house, Cmd.none )
+            ( updateHouseRate model s, Cmd.none )
 
         ChangeHouseValue s ->
-            ( updateHouse model <| House.updateValue s model.house, Cmd.none )
+            ( updateHouseValue model s, Cmd.none )
 
         ChangeLoanAmount s ->
             ( updateLoan model <| Loan.updateAmount s model.loan, Cmd.none )
@@ -138,6 +138,16 @@ update msg model =
 
 
 -- VIEW
+
+
+viewError : Maybe String -> Html Msg
+viewError error =
+    case error of
+        Nothing ->
+            text ""
+
+        Just e ->
+            text e
 
 
 viewLoan : Model -> Html Msg
@@ -216,14 +226,6 @@ viewHouse model =
         ]
 
 
-viewError : Maybe String -> Html Msg
-viewError error =
-    case error of
-        Nothing ->
-            text ""
-
-        Just e ->
-            text e
 
 
 view : Model -> Html Msg
