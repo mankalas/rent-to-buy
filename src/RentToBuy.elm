@@ -1,12 +1,12 @@
 module RentToBuy exposing (main)
 
 import Browser
-import House as House exposing (Model, updateRate, updateValue)
 import Html exposing (Html, button, div, h1, input, li, p, table, tbody, td, text, th, thead, tr, ul)
 import Html.Attributes exposing (class, colspan, disabled, placeholder, style, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import Loan as Loan exposing (Model, updateAmount, updateRate, updateTerm)
+import Utils exposing (updateFloat)
 
 
 
@@ -32,6 +32,12 @@ type Constraint
     | PaymentC
 
 
+type alias House =
+    { value : Float
+    , ratePerAnnum : Float
+    }
+
+
 type alias Deposit =
     { current : Float
     , wContribution : Float
@@ -53,7 +59,7 @@ type alias Contract =
 
 
 type alias Model =
-    { house : House.Model
+    { house : House
     , deposit : Deposit
     , loan : Loan.Model
     , insurance : Insurance
@@ -68,7 +74,7 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Model
-        (House.Model 500000.0 0.1)
+        (House 500000.0 0.1)
         (Deposit 10000.0 50)
         (Loan.Model 500000 (12 * 20) 0.06)
         (Insurance 3000)
@@ -109,14 +115,14 @@ updateRecord m rec contr =
 updateHouseRate : Model -> String -> Model
 updateHouseRate m s =
     let
-        h =
-            House.updateRate s m.house
+        res_h =
+            updateFloat s m.house "Bad house rate" (\r -> House m.house.value r)
 
         up new_h =
             { m | house = new_h }
 
         new_m =
-            updateRecord m h up
+            updateRecord m res_h up
     in
     new_m
 
@@ -124,14 +130,14 @@ updateHouseRate m s =
 updateHouseValue : Model -> String -> Model
 updateHouseValue m s =
     let
-        h =
-            House.updateValue s m.house
+        res_h =
+            updateFloat s m.house "Bad house value" (\v -> House v m.house.ratePerAnnum)
 
         up new_h =
             { m | house = new_h }
 
         new_m =
-            updateRecord m h up
+            updateRecord m res_h up
     in
     { new_m | loan = Loan.Model new_m.house.value m.loan.term m.loan.ratePerAnnum }
 
