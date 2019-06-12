@@ -102,6 +102,9 @@ type Msg
     | ChangeWeeklyDeposit String
     | ChangeInsurance String
     | ChangeTax String
+    | ChangePayment String
+    | ChangeContractAmount String
+    | ChangeContractTerm String
 
 
 updateRecord : Model -> Result String m -> (m -> Model) -> Model
@@ -182,6 +185,15 @@ update msg model =
         ChangeTax s ->
             ( model, Cmd.none )
 
+        ChangePayment s ->
+            ( model, Cmd.none )
+
+        ChangeContractAmount s ->
+            ( model, Cmd.none )
+
+        ChangeContractTerm s ->
+            ( model, Cmd.none )
+
 
 
 -- VIEW
@@ -205,7 +217,7 @@ viewLoan model =
             , tr []
                 [ th [] [ text "Amount" ]
                 , th [] [ text "Rate" ]
-                , th [] [ text "Duration (m.)" ]
+                , th [] [ text "Term (m.)" ]
                 ]
             ]
         , tbody []
@@ -228,7 +240,7 @@ viewLoan model =
                     ]
                 , td []
                     [ input
-                        [ placeholder "Duration (months)"
+                        [ placeholder "Term (months)"
                         , value <| String.fromInt model.loan.term
                         , onInput ChangeLoanTerm
                         ]
@@ -350,6 +362,66 @@ viewTax model =
         ]
 
 
+viewContract : Model -> Html Msg
+viewContract model =
+    div []
+        [ h1 [] [ text "Contract" ]
+        , table []
+            [ thead []
+                [ tr []
+                    [ th [] [ text "Amount" ]
+                    , th [] [ text "Term" ]
+                    ]
+                ]
+            , tbody []
+                [ tr []
+                    [ td []
+                        [ input
+                            [ placeholder "Amount"
+                            , value <| String.fromFloat model.contract.amount
+                            , onInput ChangeContractAmount
+                            ]
+                            []
+                        ]
+                    , td []
+                        [ input
+                            [ placeholder "Term"
+                            , value <| String.fromInt model.contract.term
+                            , onInput ChangeContractTerm
+                            ]
+                            []
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+
+viewPayment : Model -> Html Msg
+viewPayment model =
+    div []
+        [ h1 [] [ text "Payment" ]
+        , table []
+            [ thead []
+                [ tr []
+                    [ th [] [ text "Weekly" ] ]
+                ]
+            , tbody []
+                [ tr []
+                    [ td []
+                        [ input
+                            [ placeholder "Payment"
+                            , value <| String.fromFloat model.wPayment
+                            , onInput ChangePayment
+                            ]
+                            []
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div []
@@ -360,6 +432,8 @@ view model =
             , viewDeposit model
             , viewInsurance model
             , viewTax model
+            , viewContract model
+            , viewPayment model
             ]
         ]
 
