@@ -92,6 +92,8 @@ type Msg
     | ChangeLoanAmount String
     | ChangeLoanRate String
     | ChangeLoanTerm String
+    | ChangeCurrentDeposit String
+    | ChangeWeeklyDeposit String
 
 
 updateRecord : Model -> Result String m -> (m -> Model) -> Model
@@ -104,9 +106,34 @@ updateRecord m rec contr =
             contr r
 
 
-updateHouse : Model -> Result String House.Model -> Model
-updateHouse m h =
-    updateRecord m h (\r -> { m | house = r })
+updateHouseRate : Model -> String -> Model
+updateHouseRate m s =
+    let
+        h =
+            House.updateRate s m.house
+
+        up new_h =
+            { m | house = new_h }
+
+        new_m =
+            updateRecord m h up
+    in
+    new_m
+
+
+updateHouseValue : Model -> String -> Model
+updateHouseValue m s =
+    let
+        h =
+            House.updateValue s m.house
+
+        up new_h =
+            { m | house = new_h }
+
+        new_m =
+            updateRecord m h up
+    in
+    { new_m | loan = Loan.Model new_m.house.value m.loan.term m.loan.ratePerAnnum }
 
 
 updateLoan : Model -> Result String Loan.Model -> Model
@@ -134,6 +161,12 @@ update msg model =
 
         ChangeLoanRate s ->
             ( updateLoan model <| Loan.updateRate s model.loan, Cmd.none )
+
+        ChangeCurrentDeposit s ->
+            ( model, Cmd.none )
+
+        ChangeWeeklyDeposit s ->
+            ( model, Cmd.none )
 
 
 
@@ -226,6 +259,37 @@ viewHouse model =
         ]
 
 
+viewDeposit : Model -> Html Msg
+viewDeposit model =
+    table []
+        [ thead []
+            [ tr [ colspan 2 ] [ text "Deposit" ]
+            , tr []
+                [ th [] [ text "Current" ]
+                , th [] [ text "Weekly" ]
+                ]
+            ]
+        , tbody []
+            [ tr []
+                [ td []
+                    [ input
+                        [ placeholder "Deposit"
+                        , value <| String.fromFloat model.deposit.current
+                        , onInput ChangeCurrentDeposit
+                        ]
+                        []
+                    ]
+                , td []
+                    [ input
+                        [ placeholder "Weekly Deposit"
+                        , value <| String.fromFloat model.deposit.wContribution
+                        , onInput ChangeWeeklyDeposit
+                        ]
+                        []
+                    ]
+                ]
+            ]
+        ]
 
 
 view : Model -> Html Msg
@@ -235,6 +299,7 @@ view model =
         , div []
             [ viewHouse model
             , viewLoan model
+            , viewDeposit model
             ]
         ]
 
