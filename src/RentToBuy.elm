@@ -62,7 +62,7 @@ type alias Model =
     { house : House
     , deposit : Deposit
     , loan : Loan.Model
-    , insurance : Insurance
+    , insurance : Float
     , tax : Tax
     , wPayment : Float
     , contract : Contract
@@ -77,7 +77,7 @@ init _ =
         (House 500000.0 0.1)
         (Deposit 10000.0 50)
         (Loan.Model 500000 (12 * 20) 0.06)
-        (Insurance 3000)
+        3000
         (Tax 3000)
         650.0
         (Contract 500000.0 (12 * 3))
@@ -100,6 +100,7 @@ type Msg
     | ChangeLoanTerm String
     | ChangeCurrentDeposit String
     | ChangeWeeklyDeposit String
+    | ChangeInsurance String
 
 
 updateRecord : Model -> Result String m -> (m -> Model) -> Model
@@ -172,6 +173,9 @@ update msg model =
             ( model, Cmd.none )
 
         ChangeWeeklyDeposit s ->
+            ( model, Cmd.none )
+
+        ChangeInsurance s ->
             ( model, Cmd.none )
 
 
@@ -298,6 +302,28 @@ viewDeposit model =
         ]
 
 
+viewInsurance : Model -> Html Msg
+viewInsurance model =
+    table []
+        [ thead []
+            [ tr []
+                [ th [] [ text "Insurance (yearly)" ] ]
+            ]
+        , tbody []
+            [ tr []
+                [ td []
+                    [ input
+                        [ placeholder "Insurance"
+                        , value <| String.fromFloat model.insurance
+                        , onInput ChangeInsurance
+                        ]
+                        []
+                    ]
+                ]
+            ]
+        ]
+
+
 view : Model -> Html Msg
 view model =
     div []
@@ -306,6 +332,7 @@ view model =
             [ viewHouse model
             , viewLoan model
             , viewDeposit model
+            , viewInsurance model
             ]
         ]
 
