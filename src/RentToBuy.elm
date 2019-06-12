@@ -6,6 +6,7 @@ import Html exposing (Html, button, div, h1, input, li, p, table, tbody, td, tex
 import Html.Attributes exposing (class, colspan, disabled, placeholder, style, value)
 import Html.Events exposing (onClick, onInput)
 import Http
+import Loan as Loan exposing (Model, updateAmount, updateRate, updateTerm)
 
 
 
@@ -37,18 +38,6 @@ type alias Deposit =
     }
 
 
-type alias InterestRate =
-    { ratePerAnnum : Float
-    }
-
-
-type alias Loan =
-    { amount : Float
-    , term : Int
-    , rate : InterestRate
-    }
-
-
 type alias Insurance =
     { yAmount : Float }
 
@@ -66,7 +55,7 @@ type alias Contract =
 type alias Model =
     { house : House.Model
     , deposit : Deposit
-    , loan : Loan
+    , loan : Loan.Model
     , insurance : Insurance
     , tax : Tax
     , wPayment : Float
@@ -81,7 +70,7 @@ init _ =
     ( Model
         (House.Model 500000.0 0.1)
         (Deposit 10000.0 50)
-        (Loan 500000 (12 * 20) (InterestRate 0.06))
+        (Loan.Model 500000 (12 * 20) 0.06)
         (Insurance 3000)
         (Tax 3000)
         650.0
@@ -100,30 +89,29 @@ type Msg
     = None
     | ChangeHouseRate String
     | ChangeHouseValue String
+    | ChangeLoanAmount String
+    | ChangeLoanRate String
+    | ChangeLoanTerm String
 
 
-updateModelWithFloat : Model -> String -> String -> (Model -> Float -> Model) -> Model
-updateModelWithFloat m s e u =
-    let
-        f =
-            String.toFloat s
-    in
-    case f of
-        Nothing ->
-            { m | error = Just e }
+updateRecord : Model -> Result String m -> (m -> Model) -> Model
+updateRecord m rec contr =
+    case rec of
+        Err err ->
+            { m | error = Just err }
 
-        Just v ->
-            u m v
+        Ok r ->
+            contr r
 
 
 updateHouse : Model -> Result String House.Model -> Model
-updateHouse model res_house =
-    case res_house of
-        Err err ->
-            { model | error = Just err }
+updateHouse m h =
+    updateRecord m h (\r -> { m | house = r })
 
-        Ok house ->
-            { model | house = house }
+
+updateLoan : Model -> Result String Loan.Model -> Model
+updateLoan m l =
+    updateRecord m l (\r -> { m | loan = r })
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -137,6 +125,15 @@ update msg model =
 
         ChangeHouseValue s ->
             ( updateHouse model <| House.updateValue s model.house, Cmd.none )
+
+        ChangeLoanAmount s ->
+            ( updateLoan model <| Loan.updateAmount s model.loan, Cmd.none )
+
+        ChangeLoanTerm s ->
+            ( updateLoan model <| Loan.updateTerm s model.loan, Cmd.none )
+
+        ChangeLoanRate s ->
+            ( updateLoan model <| Loan.updateRate s model.loan, Cmd.none )
 
 
 
@@ -156,9 +153,30 @@ viewLoan model =
             ]
         , tbody []
             [ tr []
-                [ td [] [ input [] [] ]
-                , td [] [ input [] [] ]
-                , td [] [ input [] [] ]
+                [ td []
+                    [ input
+                        [ placeholder "Amount"
+                        , value <| String.fromFloat model.loan.amount
+                        , onInput ChangeLoanAmount
+                        ]
+                        []
+                    ]
+                , td []
+                    [ input
+                        [ placeholder "Rate"
+                        , value <| String.fromFloat model.loan.ratePerAnnum
+                        , onInput ChangeLoanRate
+                        ]
+                        []
+                    ]
+                , td []
+                    [ input
+                        [ placeholder "Duration (months)"
+                        , value <| String.fromInt model.loan.term
+                        , onInput ChangeLoanTerm
+                        ]
+                        []
+                    ]
                 ]
             ]
         ]
@@ -179,7 +197,7 @@ viewHouse model =
             [ tr []
                 [ td []
                     [ input
-                        [ placeholder "House value"
+                        [ placeholder "Value"
                         , value <| String.fromFloat model.house.value
                         , onInput ChangeHouseValue
                         ]
