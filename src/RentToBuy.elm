@@ -197,7 +197,7 @@ viewLoan : Model -> Html Msg
 viewLoan model =
     table []
         [ thead []
-            [ tr [ colspan 2 ] [ text "Loan" ]
+            [ tr [] [ th [ colspan 2, style "text-align" "center" ] [ text "Loan" ] ]
             , tr []
                 [ th [] [ text "Amount" ]
                 , th [] [ text "Rate" ]
@@ -239,8 +239,8 @@ viewHouse : Model -> Html Msg
 viewHouse model =
     table []
         [ thead []
-            [ tr [ colspan 2 ]
-                [ text "House" ]
+            [ tr []
+                [ th [ colspan 2, style "text-align" "center" ] [ text "House" ] ]
             , tr []
                 [ th [] [ text "Value" ]
                 , th [] [ text "Rate" ]
@@ -273,7 +273,7 @@ viewDeposit : Model -> Html Msg
 viewDeposit model =
     table []
         [ thead []
-            [ tr [ colspan 2 ] [ text "Deposit" ]
+            [ tr [] [ th [ style "text-align" "center", colspan 2 ] [ text "Deposit" ] ]
             , tr []
                 [ th [] [ text "Current" ]
                 , th [] [ text "Weekly" ]
