@@ -86,8 +86,14 @@ type alias Field =
 type alias Model =
     { f_hv : Field
     , c_hv : Float
+    , f_hr : Field
+    , c_hr : Float
+    , f_he : Field
+    , c_he : Float
     , f_lt : Field
     , c_lt : Int
+    , f_lr : Field
+    , c_lr : Float
 
     -- , deposit : Deposit
     -- , loan : Loan
@@ -105,8 +111,14 @@ init _ =
     ( Model
         (Field "House value ($)" "" Nothing)
         0.0
+        (Field "Market rate (%)" "" Nothing)
+        0.0
+        (Field "House extras ($)" "" Nothing)
+        0.0
         (Field "Loan term (y)" "" Nothing)
         0
+        (Field "Loan rate (%)" "" Nothing)
+        0.0
       -- (Deposit 10000.0 50)
       -- (Loan 500000 20 0.06)
       -- 3000
@@ -205,20 +217,35 @@ update msg model =
             )
 
         ChangeHouseRate s ->
-            ( model
-              --updateHouseValue model s
+            ( updateField
+                model
+                s
+                model.f_hr
+                validateFloatField
+                (\m f -> { m | f_hr = f })
+                (\m c -> { m | c_hr = c })
             , Cmd.none
             )
 
         ChangeHouseExtras s ->
-            ( model
-              -- updateHouseExtras model s
+            ( updateField
+                model
+                s
+                model.f_he
+                validateFloatField
+                (\m f -> { m | f_he = f })
+                (\m c -> { m | c_he = c })
             , Cmd.none
             )
 
         ChangeLoanAmount s ->
-            ( model
-              -- updateLoanAmount model s
+            ( updateField
+                model
+                s
+                model.f_hr
+                validateFloatField
+                (\m f -> { m | f_hr = f })
+                (\m c -> { m | c_hr = c })
             , Cmd.none
             )
 
@@ -234,8 +261,13 @@ update msg model =
             )
 
         ChangeLoanRate s ->
-            ( model
-              -- updateLoanRate model s
+            ( updateField
+                model
+                s
+                model.f_lr
+                validateFloatField
+                (\m f -> { m | f_lr = f })
+                (\m c -> { m | c_lr = c })
             , Cmd.none
             )
 
@@ -276,38 +308,6 @@ viewConstraint model =
         , input
             [ type_ "radio", name "h_constraint" ]
             []
-        ]
-
-
-viewHouseForm : Model -> Html Msg
-viewHouseForm model =
-    div []
-        [ dl []
-            [ dt [] [ text model.f_hv.name ]
-            , dd [] [ input [ value model.f_hv.value, onInput ChangeHouseValue ] [] ]
-            , case model.f_hv.error of
-                Nothing ->
-                    text ""
-
-                Just e ->
-                    dd [] [ text e ]
-            ]
-        ]
-
-
-viewLoanForm : Model -> Html Msg
-viewLoanForm model =
-    div []
-        [ dl []
-            [ dt [] [ text model.f_lt.name ]
-            , dd [] [ input [ value model.f_lt.value, onInput ChangeLoanTerm ] [] ]
-            , case model.f_lt.error of
-                Nothing ->
-                    text ""
-
-                Just e ->
-                    dd [] [ text e ]
-            ]
         ]
 
 
@@ -382,33 +382,84 @@ viewLoanForm model =
 --     List.indexedMap combine l
 
 
+viewField f msg =
+    [ dt [] [ text f.name ]
+    , dd [] [ input [ value f.value, onInput msg ] [] ]
+    , case f.error of
+        Nothing ->
+            text ""
+
+        Just e ->
+            dd [] [ text e ]
+    ]
+
+
+viewHouseForm : Model -> Html Msg
+viewHouseForm model =
+    div []
+        [ dl [] <|
+            List.concat
+                [ viewField model.f_hv ChangeHouseValue
+                , viewField model.f_hr ChangeHouseRate
+                , viewField model.f_he ChangeHouseExtras
+                ]
+        ]
+
+
+viewLoanForm : Model -> Html Msg
+viewLoanForm model =
+    div []
+        [ dl [] <|
+            List.concat
+                [ viewField model.f_lt ChangeLoanTerm
+                , viewField model.f_lr ChangeLoanRate
+                ]
+        ]
+
+
+viewCalculusField tt vt =
+    [ dt [] [ text tt ]
+    , dd [] [ text vt ]
+    ]
+
+
+viewAsDollar f =
+    "$ " ++ String.fromFloat f
+
+
+viewAsPercent f =
+    String.fromFloat f ++ " %"
+
+
+pluralize : String -> String -> Int -> String
+pluralize singular plural count =
+    if count == 1 then
+        "1 " ++ singular
+
+    else
+        String.fromInt count ++ " " ++ plural
+
+
 viewHouseCalculus : Model -> Html Msg
 viewHouseCalculus model =
     div []
-        [ dl []
-            [ dt [] [ text "House value" ]
-            , dd [] [ text <| "$ " ++ String.fromFloat model.c_hv ]
-            ]
+        [ dl [] <|
+            List.concat
+                [ viewCalculusField "House value" <| viewAsDollar model.c_hv
+                , viewCalculusField "Market rate" <| viewAsPercent model.c_hr
+                , viewCalculusField "House extras" <| viewAsDollar model.c_he
+                ]
         ]
 
 
 viewLoanCalculus : Model -> Html Msg
 viewLoanCalculus model =
     div []
-        [ dl []
-            [ dt [] [ text "Loan term" ]
-            , dd []
-                [ text <|
-                    String.fromInt model.c_lt
-                        ++ " year"
-                        ++ (if model.c_lt > 1 then
-                                "s"
-
-                            else
-                                ""
-                           )
+        [ dl [] <|
+            List.concat
+                [ viewCalculusField "Loan term" <| pluralize "year" "years" model.c_lt
+                , viewCalculusField "Loan rate" <| viewAsPercent model.c_lr
                 ]
-            ]
         ]
 
 
