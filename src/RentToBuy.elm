@@ -7,7 +7,6 @@ import Html exposing (Html, button, div, h1, input, label, li, p, table, tbody, 
 import Html.Attributes exposing (class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Loan as Loan exposing (Model, updateAmount, updateRate, updateTerm)
 import Path exposing (Path)
 import Scale exposing (ContinuousScale)
 import Shape
@@ -43,6 +42,18 @@ type Constraint
     | PaymentC
 
 
+type alias Loan =
+    { amount : RSF
+    , term : RSI
+    , ratePerAnnum : RSF
+    }
+
+
+type alias InterestRate =
+    { ratePerAnnum : RSF
+    }
+
+
 type alias House =
     { value : Float
     , ratePerAnnum : Float
@@ -73,7 +84,7 @@ type alias Contract =
 type alias Model =
     { house : House
     , deposit : Deposit
-    , loan : Loan.Model
+    , loan : Loan
     , insurance : Float
     , tax : Float
     , wPayment : Float
