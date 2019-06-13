@@ -4,7 +4,7 @@ import Axis
 import Browser
 import Color exposing (Color)
 import House as House
-import Html exposing (Html, button, div, h1, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
+import Html exposing (Html, button, dd, div, dl, dt, h1, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
 import Html.Attributes exposing (class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -216,15 +216,15 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeHouseExtras s ->
-            ( model
-              -- updateHouseExtras model s
-            , Cmd.none
-            )
-
         ChangeHouseRate s ->
             ( model
               --updateHouseValue model s
+            , Cmd.none
+            )
+
+        ChangeHouseExtras s ->
+            ( model
+              -- updateHouseExtras model s
             , Cmd.none
             )
 
@@ -346,12 +346,17 @@ recordTable table_title col_titles v_msg_list =
 
 viewHouse : Model -> Html Msg
 viewHouse model =
-    recordTable "House"
-        [ "Value", "Market Rate", "Extras" ]
-        [ ( model.f_hv, ChangeHouseValue )
+    div []
+        [ dl []
+            [ dt [] [ text "House value" ]
+            , dd [] [ input [ value model.f_hv.value, onInput ChangeHouseValue ] [] ]
+            , case model.f_hv.error of
+                Nothing ->
+                    text ""
 
-        -- , ( model.house.ratePerAnnum, ChangeHouseRate )
-        -- , ( model.house.extras, ChangeHouseExtras )
+                Just e ->
+                    dd [] [ text e ]
+            ]
         ]
 
 
