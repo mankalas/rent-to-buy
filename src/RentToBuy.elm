@@ -11,6 +11,7 @@ import Http
 import Path exposing (Path)
 import Scale exposing (ContinuousScale)
 import Shape
+import String.Verify exposing (isInt)
 import Time
 import TypedSvg exposing (g, svg)
 import TypedSvg.Attributes exposing (class, fill, stroke, transform, viewBox)
@@ -197,6 +198,10 @@ type alias FField =
     { value : Float }
 
 
+type alias IField =
+    { value : Int }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -239,8 +244,19 @@ update msg model =
             )
 
         ChangeLoanTerm s ->
-            ( model
-              -- updateLoanTerm model s
+            ( let
+                v =
+                    validate IField |> verify .value (isInt "Value must be an integer")
+
+                n_lt =
+                    model.f_lt |> setValue s
+              in
+              case v { value = s } of
+                Err e ->
+                    { model | f_lt = n_lt |> setError (Just (Tuple.first e)) }
+
+                Ok i ->
+                    { model | f_lt = n_lt |> setError Nothing, c_lt = i.value }
             , Cmd.none
             )
 
@@ -370,7 +386,7 @@ viewLoanForm model =
         [ dl []
             [ dt [] [ text model.f_lt.name ]
             , dd [] [ input [ value model.f_lt.value, onInput ChangeLoanTerm ] [] ]
-            , case model.f_hv.error of
+            , case model.f_lt.error of
                 Nothing ->
                     text ""
 
