@@ -1,4 +1,4 @@
-module House exposing (Model, VerifiedModel, init, initVerified, validator)
+module House exposing (Model, VerifiedModel, init, initVerified, setRate, validator)
 
 import Validators exposing (isFloat)
 import Verify exposing (Validator, validate, verify)
@@ -33,3 +33,8 @@ validator =
         |> verify .value (isFloat "House value must be a float")
         |> verify .ratePerAnnum (isFloat "House rate must be a float")
         |> verify .extras (isFloat "House extras must be a float")
+
+
+setRate : String -> Model -> Model
+setRate s m =
+    { m | ratePerAnnum = s }

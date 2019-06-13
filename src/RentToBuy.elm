@@ -17,6 +17,8 @@ import TypedSvg.Attributes exposing (class, fill, stroke, transform, viewBox)
 import TypedSvg.Attributes.InPx exposing (strokeWidth)
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (Fill(..), Transform(..))
+import Validators
+import Verify exposing (Validator, validate, verify)
 
 
 
@@ -74,40 +76,44 @@ type alias Contract =
     }
 
 
-type alias Model =
-    { house : House.Model
-    , deposit : Deposit
-    , loan : Loan
-    , insurance : Float
-    , tax : Float
-    , wPayment : Float
-    , contract : Contract
-    , constraint : Constraint
-    , errors : Maybe (List String)
-    , verified : VerifiedModel
+type alias Field =
+    { name : String
+    , value : String
+    , error : Maybe String
     }
 
 
-type alias VerifiedModel =
-    { house : House.VerifiedModel
+type alias Model =
+    { f_hv : Field
+    , c_hv : Float
+
+    -- , deposit : Deposit
+    -- , loan : Loan
+    -- , insurance : Float
+    -- , tax : Float
+    -- , wPayment : Float
+    -- , contract : Contract
+    -- , constraint : Constraint
+    -- , errors : Maybe (List String)
     }
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Model
-        House.init
-        (Deposit 10000.0 50)
-        (Loan 500000 20 0.06)
-        3000
-        3000
-        650.0
-        (Contract 500000.0 (12 * 3))
-        HouseC
-        Nothing
-        (VerifiedModel
-            House.initVerified
-        )
+        (Field "House value" "" Nothing)
+        0.0
+      -- (Deposit 10000.0 50)
+      -- (Loan 500000 20 0.06)
+      -- 3000
+      -- 3000
+      -- 650.0
+      -- (Contract 500000.0 (12 * 3))
+      -- HouseC
+      -- Nothing
+      -- (VerifiedModel
+      --     House.initVerified
+      -- )
     , Cmd.none
     )
 
@@ -168,36 +174,45 @@ type Msg
 --     updateRecord m l (\r -> { m | loan = r })
 
 
+setHouse : x -> { house : x } -> { house : x }
+setHouse h m =
+    { m | house = h }
+
+
+setError : Maybe String -> Field -> Field
+setError e f =
+    { f | error = e }
+
+
+setValue : String -> Field -> Field
+setValue v f =
+    { f | value = v }
+
+
+type alias FField =
+    { value : Float }
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         None ->
             ( model, Cmd.none )
 
-        ChangeHouseRate s ->
+        ChangeHouseValue s ->
             ( let
-                old_house =
-                    model.house
+                v =
+                    validate FField |> verify .value (Validators.isFloat "Value must be a float")
 
-                new_house =
-                    { old_house | ratePerAnnum = s }
-
-                result_house =
-                    House.validator new_house
+                n_hv =
+                    model.f_hv |> setValue s
               in
-              case result_house of
-                Err ( e, errs ) ->
-                    { model | house = new_house, errors = Just (e :: errs) }
+              case v { value = s } of
+                Err e ->
+                    { model | f_hv = n_hv |> setError (Just (Tuple.first e)) }
 
-                Ok verified_house ->
-                    let
-                        old_verified_model =
-                            model.verified
-
-                        new_verified_model =
-                            { old_verified_model | house = verified_house }
-                    in
-                    { model | verified = new_verified_model, house = new_house }
+                Ok f ->
+                    { model | f_hv = n_hv |> setError Nothing, c_hv = f.value }
             , Cmd.none
             )
 
@@ -207,7 +222,7 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeHouseValue s ->
+        ChangeHouseRate s ->
             ( model
               --updateHouseValue model s
             , Cmd.none
@@ -281,20 +296,29 @@ viewConstraint model =
         ]
 
 
-recordTable : String -> List String -> List ( String, String -> Msg ) -> Html Msg
+recordTable : String -> List String -> List ( Field, String -> Msg ) -> Html Msg
 recordTable table_title col_titles v_msg_list =
     let
         col_th t =
             th [] [ text t ]
 
-        col_td ( v, msg ) =
+        col_td ( f, msg ) =
             td []
                 [ input
-                    [ value v
+                    [ value f.value
                     , onInput msg
                     ]
                     []
                 ]
+
+        col_er ( f, msg ) =
+            case f.error of
+                Nothing ->
+                    text ""
+
+                Just e ->
+                    td []
+                        [ text e ]
     in
     table []
         [ thead []
@@ -304,6 +328,7 @@ recordTable table_title col_titles v_msg_list =
             ]
         , tbody []
             [ tr [] <| List.map col_td v_msg_list
+            , tr [] <| List.map col_er v_msg_list
             ]
         ]
 
@@ -323,9 +348,10 @@ viewHouse : Model -> Html Msg
 viewHouse model =
     recordTable "House"
         [ "Value", "Market Rate", "Extras" ]
-        [ ( model.house.value, ChangeHouseValue )
-        , ( model.house.ratePerAnnum, ChangeHouseRate )
-        , ( model.house.extras, ChangeHouseExtras )
+        [ ( model.f_hv, ChangeHouseValue )
+
+        -- , ( model.house.ratePerAnnum, ChangeHouseRate )
+        -- , ( model.house.extras, ChangeHouseExtras )
         ]
 
 
