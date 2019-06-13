@@ -3,7 +3,6 @@ module RentToBuy exposing (main)
 import Axis
 import Browser
 import Color exposing (Color)
-import House as House
 import Html exposing (Html, button, dd, div, dl, dt, h1, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
 import Html.Attributes exposing (class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
@@ -144,49 +143,9 @@ type Msg
     | ChangeContractTerm String
 
 
-
--- updateRecord : Model -> Result String m -> (m -> Model) -> Model
--- updateRecord m rec contr =
---     case rec of
---         Err err ->
---             { m | error = Just err }
---         Ok r ->
---             contr r
--- updateHouseRate : Model -> String -> Model
--- updateHouseRate m s =
---     let
---         res_h =
---             updateFloat s m.house "Bad house rate" (\r -> House.model m.house.value r m.house.extras)
---         up new_h =
---             { m | house = new_h }
---         new_m =
---             updateRecord m res_h up
---     in
---     new_m
--- updateHouseValue : Model -> String -> Model
--- updateHouseValue m s =
---     let
---         res_h =
---             updateFloat s m.house "Bad house value" (\v -> House v m.house.ratePerAnnum m.house.extras)
---         up new_h =
---             { m | house = new_h }
---         new_m =
---             updateRecord m res_h up
---     in
---     { new_m | loan = Loan.Model new_m.house.value m.loan.term m.loan.ratePerAnnum }
--- updateLoan : Model -> Result String Loan.Model -> Model
--- updateLoan m l =
---     updateRecord m l (\r -> { m | loan = r })
-
-
-setHouse : x -> { house : x } -> { house : x }
-setHouse h m =
-    { m | house = h }
-
-
-setError : Maybe String -> Field -> Field
+setError : ( String, List String ) -> Field -> Field
 setError e f =
-    { f | error = e }
+    { f | error = Just (Tuple.first e) }
 
 
 setValue : String -> Field -> Field
@@ -202,6 +161,32 @@ type alias IField =
     { value : Int }
 
 
+resetError f =
+    { f | error = Nothing }
+
+
+validateFloatField =
+    validate FField |> verify .value (Validators.isFloat "Value must be a float")
+
+
+validateIntField =
+    validate IField |> verify .value (isInt "Value must be an integer")
+
+
+updateField : Model -> String -> Field -> Validator String { value : String } { value : n } -> (Model -> Field -> Model) -> (Model -> n -> Model) -> Model
+updateField m s o_f v up_f up_c =
+    let
+        n_f =
+            o_f |> setValue s
+    in
+    case v { value = s } of
+        Err e ->
+            up_f m (n_f |> setError e)
+
+        Ok f ->
+            up_f (up_c m f.value) (n_f |> resetError)
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
@@ -209,19 +194,13 @@ update msg model =
             ( model, Cmd.none )
 
         ChangeHouseValue s ->
-            ( let
-                v =
-                    validate FField |> verify .value (Validators.isFloat "Value must be a float")
-
-                n_hv =
-                    model.f_hv |> setValue s
-              in
-              case v { value = s } of
-                Err e ->
-                    { model | f_hv = n_hv |> setError (Just (Tuple.first e)) }
-
-                Ok f ->
-                    { model | f_hv = n_hv |> setError Nothing, c_hv = f.value }
+            ( updateField
+                model
+                s
+                model.f_hv
+                validateFloatField
+                (\m f -> { m | f_hv = f })
+                (\m c -> { m | c_hv = c })
             , Cmd.none
             )
 
@@ -244,19 +223,13 @@ update msg model =
             )
 
         ChangeLoanTerm s ->
-            ( let
-                v =
-                    validate IField |> verify .value (isInt "Value must be an integer")
-
-                n_lt =
-                    model.f_lt |> setValue s
-              in
-              case v { value = s } of
-                Err e ->
-                    { model | f_lt = n_lt |> setError (Just (Tuple.first e)) }
-
-                Ok i ->
-                    { model | f_lt = n_lt |> setError Nothing, c_lt = i.value }
+            ( updateField
+                model
+                s
+                model.f_lt
+                validateIntField
+                (\m f -> { m | f_lt = f })
+                (\m c -> { m | c_lt = c })
             , Cmd.none
             )
 
@@ -292,16 +265,6 @@ update msg model =
 -- VIEW
 
 
-viewError : Maybe String -> Html Msg
-viewError error =
-    case error of
-        Nothing ->
-            text ""
-
-        Just e ->
-            text e
-
-
 viewConstraint : Model -> Html Msg
 viewConstraint model =
     div []
@@ -314,54 +277,6 @@ viewConstraint model =
             [ type_ "radio", name "h_constraint" ]
             []
         ]
-
-
-recordTable : String -> List String -> List ( Field, String -> Msg ) -> Html Msg
-recordTable table_title col_titles v_msg_list =
-    let
-        col_th t =
-            th [] [ text t ]
-
-        col_td ( f, msg ) =
-            td []
-                [ input
-                    [ value f.value
-                    , onInput msg
-                    ]
-                    []
-                ]
-
-        col_er ( f, msg ) =
-            case f.error of
-                Nothing ->
-                    text ""
-
-                Just e ->
-                    td []
-                        [ text e ]
-    in
-    table []
-        [ thead []
-            [ tr []
-                [ th [ colspan <| List.length col_titles, style "text-align" "center" ] [ text table_title ] ]
-            , tr [] <| List.map col_th col_titles
-            ]
-        , tbody []
-            [ tr [] <| List.map col_td v_msg_list
-            , tr [] <| List.map col_er v_msg_list
-            ]
-        ]
-
-
-
--- viewLoan : Model -> Html Msg
--- viewLoan model =
---     recordTable "Loan"
---         [ "Amount", "Rate", "Term (y.)" ]
---         [ ( String.fromFloat model.loan.amount, ChangeLoanAmount )
---         , ( String.fromFloat model.loan.ratePerAnnum, ChangeLoanRate )
---         , ( String.fromInt model.loan.term, ChangeLoanTerm )
---         ]
 
 
 viewHouseForm : Model -> Html Msg
@@ -397,35 +312,6 @@ viewLoanForm model =
 
 
 
--- viewDeposit : Model -> Html Msg
--- viewDeposit model =
---     recordTable "Deposit"
---         [ "Current", "Weekly" ]
---         [ ( String.fromFloat model.deposit.current, ChangeCurrentDeposit )
---         , ( String.fromFloat model.deposit.wContribution, ChangeWeeklyDeposit )
---         ]
--- viewInsurance : Model -> Html Msg
--- viewInsurance model =
---     recordTable "Insurance"
---         [ "Yearly" ]
---         [ ( String.fromFloat model.insurance, ChangeInsurance ) ]
--- viewTax : Model -> Html Msg
--- viewTax model =
---     recordTable "Tax"
---         [ "Yearly" ]
---         [ ( String.fromFloat model.tax, ChangeTax ) ]
--- viewContract : Model -> Html Msg
--- viewContract model =
---     recordTable "Contract"
---         [ "Amount", "Term" ]
---         [ ( String.fromFloat model.contract.amount, ChangeContractAmount )
---         , ( String.fromInt model.contract.term, ChangeContractTerm )
---         ]
--- viewPayment : Model -> Html Msg
--- viewPayment model =
---     recordTable "Payment"
---         [ "Weekly" ]
---         [ ( String.fromFloat model.wPayment, ChangePayment ) ]
 -- w : Float
 -- w =
 --     900
