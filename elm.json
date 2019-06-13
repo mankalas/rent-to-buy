@@ -18,7 +18,8 @@
             "elm-community/typed-svg": "5.0.1",
             "folkertdev/one-true-path-experiment": "4.0.2",
             "gampleman/elm-visualization": "2.0.0",
-            "lovasoa/elm-csv": "1.1.5"
+            "lovasoa/elm-csv": "1.1.5",
+            "stoeffel/elm-verify": "5.0.0"
         },
         "indirect": {
             "elm/bytes": "1.0.8",

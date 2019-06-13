@@ -3,6 +3,7 @@ module RentToBuy exposing (main)
 import Axis
 import Browser
 import Color exposing (Color)
+import House as House
 import Html exposing (Html, button, div, h1, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
 import Html.Attributes exposing (class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
@@ -16,7 +17,6 @@ import TypedSvg.Attributes exposing (class, fill, stroke, transform, viewBox)
 import TypedSvg.Attributes.InPx exposing (strokeWidth)
 import TypedSvg.Core exposing (Svg)
 import TypedSvg.Types exposing (Fill(..), Transform(..))
-import Utils exposing (updateFloat)
 
 
 
@@ -43,21 +43,14 @@ type Constraint
 
 
 type alias Loan =
-    { amount : RSF
-    , term : RSI
-    , ratePerAnnum : RSF
+    { amount : Float
+    , term : Int
+    , ratePerAnnum : Float
     }
 
 
 type alias InterestRate =
-    { ratePerAnnum : RSF
-    }
-
-
-type alias House =
-    { value : Float
-    , ratePerAnnum : Float
-    , extras : Float
+    { ratePerAnnum : Float
     }
 
 
@@ -82,7 +75,20 @@ type alias Contract =
 
 
 type alias Model =
-    { house : House
+    { house : House.Model
+    , deposit : Deposit
+    , loan : Loan
+    , insurance : Float
+    , tax : Float
+    , wPayment : Float
+    , contract : Contract
+    , constraint : Constraint
+    , errors : Maybe (List String)
+    }
+
+
+type alias VerifiedModel =
+    { house : House.VerifiedModel
     , deposit : Deposit
     , loan : Loan
     , insurance : Float
@@ -97,9 +103,9 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Model
-        (House 500000.0 0.1 0)
+        House.init
         (Deposit 10000.0 50)
-        (Loan.Model 500000 20 0.06)
+        (Loan 500000 20 0.06)
         3000
         3000
         650.0
@@ -145,7 +151,7 @@ updateHouseRate : Model -> String -> Model
 updateHouseRate m s =
     let
         res_h =
-            updateFloat s m.house "Bad house rate" (\r -> House m.house.value r m.house.extras)
+            updateFloat s m.house "Bad house rate" (\r -> House.model m.house.value r m.house.extras)
 
         up new_h =
             { m | house = new_h }
@@ -183,22 +189,46 @@ update msg model =
             ( model, Cmd.none )
 
         ChangeHouseRate s ->
-            ( updateHouseRate model s, Cmd.none )
+            ( let
+                old_house =
+                    model.house
+
+                new_house =
+                    { old_house | rate = s }
+
+                result_house =
+                    House.validator new_house
+              in
+              case result_house of
+                Err err ->
+                    { model | errors = err }
+
+                Ok verified_house ->
+                    let
+                        old_verified_model =
+                            model.verified
+
+                        new_verified_model =
+                            { old_verified_model | house = verified_house }
+                    in
+                    { model | verified = new_verified_model }
+            , Cmd.none
+            )
 
         ChangeHouseExtras s ->
-            ( updateHouseRate model s, Cmd.none )
+            ( updateHouseExtras model s, Cmd.none )
 
         ChangeHouseValue s ->
             ( updateHouseValue model s, Cmd.none )
 
         ChangeLoanAmount s ->
-            ( updateLoan model <| Loan.updateAmount s model.loan, Cmd.none )
+            ( updateLoanAmount model s, Cmd.none )
 
         ChangeLoanTerm s ->
-            ( updateLoan model <| Loan.updateTerm s model.loan, Cmd.none )
+            ( updateLoanTerm model s, Cmd.none )
 
         ChangeLoanRate s ->
-            ( updateLoan model <| Loan.updateRate s model.loan, Cmd.none )
+            ( updateLoanRate model s, Cmd.none )
 
         ChangeCurrentDeposit s ->
             ( model, Cmd.none )
