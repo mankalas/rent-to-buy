@@ -94,6 +94,7 @@ type alias Model =
     , c_lt : Int
     , f_lr : Field
     , c_lr : Float
+    , c_la : Float
 
     -- , deposit : Deposit
     -- , loan : Loan
@@ -119,6 +120,8 @@ init _ =
         0
         (Field "Loan rate (%)" "" Nothing)
         0.0
+        0.0
+      -- Loan amount
       -- (Deposit 10000.0 50)
       -- (Loan 500000 20 0.06)
       -- 3000
@@ -212,7 +215,7 @@ update msg model =
                 model.f_hv
                 validateFloatField
                 (\m f -> { m | f_hv = f })
-                (\m c -> { m | c_hv = c })
+                (\m c -> { m | c_hv = c, c_la = c + m.c_he })
             , Cmd.none
             )
 
@@ -234,7 +237,7 @@ update msg model =
                 model.f_he
                 validateFloatField
                 (\m f -> { m | f_he = f })
-                (\m c -> { m | c_he = c })
+                (\m c -> { m | c_he = c, c_la = m.c_hv + c })
             , Cmd.none
             )
 
@@ -459,6 +462,7 @@ viewLoanCalculus model =
             List.concat
                 [ viewCalculusField "Loan term" <| pluralize "year" "years" model.c_lt
                 , viewCalculusField "Loan rate" <| viewAsPercent model.c_lr
+                , viewCalculusField "Loan amount" <| viewAsDollar model.c_la
                 ]
         ]
 
