@@ -344,8 +344,8 @@ recordTable table_title col_titles v_msg_list =
 --         ]
 
 
-viewHouse : Model -> Html Msg
-viewHouse model =
+viewHouseForm : Model -> Html Msg
+viewHouseForm model =
     div []
         [ dl []
             [ dt [] [ text "House value" ]
@@ -460,21 +460,35 @@ viewHouse model =
 --     List.indexedMap combine l
 
 
+viewHouseCalculus : Model -> Html Msg
+viewHouseCalculus model =
+    div []
+        [ dl []
+            [ dt [] [ text "House value" ]
+            , dd [] [ text <| "$ " ++ String.fromFloat model.c_hv ]
+            ]
+        ]
+
+
+viewForm : Model -> Html Msg
+viewForm model =
+    div []
+        [ viewHouseForm model ]
+
+
+viewCalculus : Model -> Html Msg
+viewCalculus model =
+    div [ style "border" "solid" ]
+        [ viewHouseCalculus model
+        ]
+
+
 view : Model -> Html Msg
 view model =
-    div []
-        [ div [ class [ "error" ] ] []
-        , div []
-            [ -- viewConstraint model
-              viewHouse model
-
-            -- , viewLoan model
-            -- , viewDeposit model
-            -- , viewInsurance model
-            -- , viewTax model
-            -- , viewContract model
-            -- , viewPayment model
-            -- , viewGraph <| timeSeries model
+    table []
+        [ tr [ class [ "error" ] ]
+            [ td [] [ viewForm model ]
+            , td [] [ viewCalculus model ]
             ]
         ]
 
