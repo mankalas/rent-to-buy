@@ -341,8 +341,8 @@ w =
     900
 
 
-h : Float
-h =
+he : Float
+he =
     450
 
 
@@ -358,7 +358,7 @@ xScale =
 
 yScale : ContinuousScale Float
 yScale =
-    Scale.linear ( h - 2 * padding, 0 ) ( 0, 500000 )
+    Scale.linear ( he - 2 * padding, 0 ) ( 0, 500000 )
 
 
 xAxis : List ( Int, Float ) -> Svg msg
@@ -398,8 +398,8 @@ area model =
 
 viewGraph : List ( Int, Float ) -> Svg msg
 viewGraph model =
-    svg [ viewBox 0 0 w h ]
-        [ g [ transform [ Translate (padding - 1) (h - padding) ] ]
+    svg [ viewBox 0 0 w he ]
+        [ g [ transform [ Translate (padding - 1) (he - padding) ] ]
             [ xAxis model ]
         , g [ transform [ Translate (padding - 1) padding ] ]
             [ yAxis ]
