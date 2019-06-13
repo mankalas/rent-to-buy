@@ -84,19 +84,12 @@ type alias Model =
     , contract : Contract
     , constraint : Constraint
     , errors : Maybe (List String)
+    , verified : VerifiedModel
     }
 
 
 type alias VerifiedModel =
     { house : House.VerifiedModel
-    , deposit : Deposit
-    , loan : Loan
-    , insurance : Float
-    , tax : Float
-    , wPayment : Float
-    , contract : Contract
-    , constraint : Constraint
-    , error : Maybe String
     }
 
 
@@ -112,6 +105,9 @@ init _ =
         (Contract 500000.0 (12 * 3))
         HouseC
         Nothing
+        (VerifiedModel
+            House.initVerified
+        )
     , Cmd.none
     )
 
@@ -137,49 +133,39 @@ type Msg
     | ChangeContractTerm String
 
 
-updateRecord : Model -> Result String m -> (m -> Model) -> Model
-updateRecord m rec contr =
-    case rec of
-        Err err ->
-            { m | error = Just err }
 
-        Ok r ->
-            contr r
-
-
-updateHouseRate : Model -> String -> Model
-updateHouseRate m s =
-    let
-        res_h =
-            updateFloat s m.house "Bad house rate" (\r -> House.model m.house.value r m.house.extras)
-
-        up new_h =
-            { m | house = new_h }
-
-        new_m =
-            updateRecord m res_h up
-    in
-    new_m
-
-
-updateHouseValue : Model -> String -> Model
-updateHouseValue m s =
-    let
-        res_h =
-            updateFloat s m.house "Bad house value" (\v -> House v m.house.ratePerAnnum m.house.extras)
-
-        up new_h =
-            { m | house = new_h }
-
-        new_m =
-            updateRecord m res_h up
-    in
-    { new_m | loan = Loan.Model new_m.house.value m.loan.term m.loan.ratePerAnnum }
-
-
-updateLoan : Model -> Result String Loan.Model -> Model
-updateLoan m l =
-    updateRecord m l (\r -> { m | loan = r })
+-- updateRecord : Model -> Result String m -> (m -> Model) -> Model
+-- updateRecord m rec contr =
+--     case rec of
+--         Err err ->
+--             { m | error = Just err }
+--         Ok r ->
+--             contr r
+-- updateHouseRate : Model -> String -> Model
+-- updateHouseRate m s =
+--     let
+--         res_h =
+--             updateFloat s m.house "Bad house rate" (\r -> House.model m.house.value r m.house.extras)
+--         up new_h =
+--             { m | house = new_h }
+--         new_m =
+--             updateRecord m res_h up
+--     in
+--     new_m
+-- updateHouseValue : Model -> String -> Model
+-- updateHouseValue m s =
+--     let
+--         res_h =
+--             updateFloat s m.house "Bad house value" (\v -> House v m.house.ratePerAnnum m.house.extras)
+--         up new_h =
+--             { m | house = new_h }
+--         new_m =
+--             updateRecord m res_h up
+--     in
+--     { new_m | loan = Loan.Model new_m.house.value m.loan.term m.loan.ratePerAnnum }
+-- updateLoan : Model -> Result String Loan.Model -> Model
+-- updateLoan m l =
+--     updateRecord m l (\r -> { m | loan = r })
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -194,14 +180,14 @@ update msg model =
                     model.house
 
                 new_house =
-                    { old_house | rate = s }
+                    { old_house | ratePerAnnum = s }
 
                 result_house =
                     House.validator new_house
               in
               case result_house of
-                Err err ->
-                    { model | errors = err }
+                Err ( e, errs ) ->
+                    { model | house = new_house, errors = Just (e :: errs) }
 
                 Ok verified_house ->
                     let
@@ -211,24 +197,39 @@ update msg model =
                         new_verified_model =
                             { old_verified_model | house = verified_house }
                     in
-                    { model | verified = new_verified_model }
+                    { model | verified = new_verified_model, house = new_house }
             , Cmd.none
             )
 
         ChangeHouseExtras s ->
-            ( updateHouseExtras model s, Cmd.none )
+            ( model
+              -- updateHouseExtras model s
+            , Cmd.none
+            )
 
         ChangeHouseValue s ->
-            ( updateHouseValue model s, Cmd.none )
+            ( model
+              --updateHouseValue model s
+            , Cmd.none
+            )
 
         ChangeLoanAmount s ->
-            ( updateLoanAmount model s, Cmd.none )
+            ( model
+              -- updateLoanAmount model s
+            , Cmd.none
+            )
 
         ChangeLoanTerm s ->
-            ( updateLoanTerm model s, Cmd.none )
+            ( model
+              -- updateLoanTerm model s
+            , Cmd.none
+            )
 
         ChangeLoanRate s ->
-            ( updateLoanRate model s, Cmd.none )
+            ( model
+              -- updateLoanRate model s
+            , Cmd.none
+            )
 
         ChangeCurrentDeposit s ->
             ( model, Cmd.none )
@@ -307,164 +308,125 @@ recordTable table_title col_titles v_msg_list =
         ]
 
 
-viewLoan : Model -> Html Msg
-viewLoan model =
-    recordTable "Loan"
-        [ "Amount", "Rate", "Term (y.)" ]
-        [ ( String.fromFloat model.loan.amount, ChangeLoanAmount )
-        , ( String.fromFloat model.loan.ratePerAnnum, ChangeLoanRate )
-        , ( String.fromInt model.loan.term, ChangeLoanTerm )
-        ]
+
+-- viewLoan : Model -> Html Msg
+-- viewLoan model =
+--     recordTable "Loan"
+--         [ "Amount", "Rate", "Term (y.)" ]
+--         [ ( String.fromFloat model.loan.amount, ChangeLoanAmount )
+--         , ( String.fromFloat model.loan.ratePerAnnum, ChangeLoanRate )
+--         , ( String.fromInt model.loan.term, ChangeLoanTerm )
+--         ]
 
 
 viewHouse : Model -> Html Msg
 viewHouse model =
     recordTable "House"
         [ "Value", "Market Rate", "Extras" ]
-        [ ( String.fromFloat model.house.value, ChangeHouseValue )
-        , ( String.fromFloat model.house.ratePerAnnum, ChangeHouseRate )
-        , ( String.fromFloat model.house.extras, ChangeHouseExtras )
+        [ ( model.house.value, ChangeHouseValue )
+        , ( model.house.ratePerAnnum, ChangeHouseRate )
+        , ( model.house.extras, ChangeHouseExtras )
         ]
 
 
-viewDeposit : Model -> Html Msg
-viewDeposit model =
-    recordTable "Deposit"
-        [ "Current", "Weekly" ]
-        [ ( String.fromFloat model.deposit.current, ChangeCurrentDeposit )
-        , ( String.fromFloat model.deposit.wContribution, ChangeWeeklyDeposit )
-        ]
 
-
-viewInsurance : Model -> Html Msg
-viewInsurance model =
-    recordTable "Insurance"
-        [ "Yearly" ]
-        [ ( String.fromFloat model.insurance, ChangeInsurance ) ]
-
-
-viewTax : Model -> Html Msg
-viewTax model =
-    recordTable "Tax"
-        [ "Yearly" ]
-        [ ( String.fromFloat model.tax, ChangeTax ) ]
-
-
-viewContract : Model -> Html Msg
-viewContract model =
-    recordTable "Contract"
-        [ "Amount", "Term" ]
-        [ ( String.fromFloat model.contract.amount, ChangeContractAmount )
-        , ( String.fromInt model.contract.term, ChangeContractTerm )
-        ]
-
-
-viewPayment : Model -> Html Msg
-viewPayment model =
-    recordTable "Payment"
-        [ "Weekly" ]
-        [ ( String.fromFloat model.wPayment, ChangePayment ) ]
-
-
-w : Float
-w =
-    900
-
-
-he : Float
-he =
-    450
-
-
-padding : Float
-padding =
-    50
-
-
-xScale : ContinuousScale Float
-xScale =
-    Scale.linear ( 0, w - 2 * padding ) ( now_y, toFloat <| now_y + 20 )
-
-
-yScale : ContinuousScale Float
-yScale =
-    Scale.linear ( he - 2 * padding, 0 ) ( 0, 500000 )
-
-
-xAxis : List ( Int, Float ) -> Svg msg
-xAxis model =
-    Axis.bottom [ Axis.tickCount (List.length model) ] xScale
-
-
-yAxis : Svg msg
-yAxis =
-    Axis.left [ Axis.tickCount 10 ] yScale
-
-
-transformToLineData : ( Int, Float ) -> Maybe ( Float, Float )
-transformToLineData ( x, y ) =
-    Just ( Scale.convert xScale (toFloat x), Scale.convert yScale y )
-
-
-tranfromToAreaData : ( Int, Float ) -> Maybe ( ( Float, Float ), ( Float, Float ) )
-tranfromToAreaData ( x, y ) =
-    Just
-        ( ( Scale.convert xScale (toFloat x), Tuple.first (Scale.rangeExtent yScale) )
-        , ( Scale.convert xScale (toFloat x), Scale.convert yScale y )
-        )
-
-
-line : List ( Int, Float ) -> Path
-line model =
-    List.map transformToLineData model
-        |> Shape.line Shape.monotoneInXCurve
-
-
-area : List ( Int, Float ) -> Path
-area model =
-    List.map tranfromToAreaData model
-        |> Shape.area Shape.monotoneInXCurve
-
-
-viewGraph : List ( Int, Float ) -> Svg msg
-viewGraph model =
-    svg [ viewBox 0 0 w he ]
-        [ g [ transform [ Translate (padding - 1) (he - padding) ] ]
-            [ xAxis model ]
-        , g [ transform [ Translate (padding - 1) padding ] ]
-            [ yAxis ]
-        , g [ transform [ Translate padding padding ], class [ "series" ] ]
-            [ Path.element (area model) [ strokeWidth 3, fill <| Fill <| Color.rgba 1 0 0 0.54 ]
-            , Path.element (line model) [ stroke (Color.rgb 1 0 0), strokeWidth 3, fill FillNone ]
-            ]
-        ]
-
-
-now_y =
-    2019
-
-
-weeks_in_year =
-    52.1429
-
-
-timeSeries model =
-    let
-        loan =
-            model.loan
-
-        pay =
-            model.wPayment
-
-        l =
-            loan.amount :: List.repeat loan.term 0.0
-
-        combine n f =
-            ( now_y + n
-            , max 0 <| loan.amount * (1 + loan.ratePerAnnum) - (pay * weeks_in_year * toFloat n)
-            )
-    in
-    List.indexedMap combine l
+-- viewDeposit : Model -> Html Msg
+-- viewDeposit model =
+--     recordTable "Deposit"
+--         [ "Current", "Weekly" ]
+--         [ ( String.fromFloat model.deposit.current, ChangeCurrentDeposit )
+--         , ( String.fromFloat model.deposit.wContribution, ChangeWeeklyDeposit )
+--         ]
+-- viewInsurance : Model -> Html Msg
+-- viewInsurance model =
+--     recordTable "Insurance"
+--         [ "Yearly" ]
+--         [ ( String.fromFloat model.insurance, ChangeInsurance ) ]
+-- viewTax : Model -> Html Msg
+-- viewTax model =
+--     recordTable "Tax"
+--         [ "Yearly" ]
+--         [ ( String.fromFloat model.tax, ChangeTax ) ]
+-- viewContract : Model -> Html Msg
+-- viewContract model =
+--     recordTable "Contract"
+--         [ "Amount", "Term" ]
+--         [ ( String.fromFloat model.contract.amount, ChangeContractAmount )
+--         , ( String.fromInt model.contract.term, ChangeContractTerm )
+--         ]
+-- viewPayment : Model -> Html Msg
+-- viewPayment model =
+--     recordTable "Payment"
+--         [ "Weekly" ]
+--         [ ( String.fromFloat model.wPayment, ChangePayment ) ]
+-- w : Float
+-- w =
+--     900
+-- he : Float
+-- he =
+--     450
+-- padding : Float
+-- padding =
+--     50
+-- xScale : ContinuousScale Float
+-- xScale =
+--     Scale.linear ( 0, w - 2 * padding ) ( now_y, toFloat <| now_y + 20 )
+-- yScale : ContinuousScale Float
+-- yScale =
+--     Scale.linear ( he - 2 * padding, 0 ) ( 0, 500000 )
+-- xAxis : List ( Int, Float ) -> Svg msg
+-- xAxis model =
+--     Axis.bottom [ Axis.tickCount (List.length model) ] xScale
+-- yAxis : Svg msg
+-- yAxis =
+--     Axis.left [ Axis.tickCount 10 ] yScale
+-- transformToLineData : ( Int, Float ) -> Maybe ( Float, Float )
+-- transformToLineData ( x, y ) =
+--     Just ( Scale.convert xScale (toFloat x), Scale.convert yScale y )
+-- tranfromToAreaData : ( Int, Float ) -> Maybe ( ( Float, Float ), ( Float, Float ) )
+-- tranfromToAreaData ( x, y ) =
+--     Just
+--         ( ( Scale.convert xScale (toFloat x), Tuple.first (Scale.rangeExtent yScale) )
+--         , ( Scale.convert xScale (toFloat x), Scale.convert yScale y )
+--         )
+-- line : List ( Int, Float ) -> Path
+-- line model =
+--     List.map transformToLineData model
+--         |> Shape.line Shape.monotoneInXCurve
+-- area : List ( Int, Float ) -> Path
+-- area model =
+--     List.map tranfromToAreaData model
+--         |> Shape.area Shape.monotoneInXCurve
+-- viewGraph : List ( Int, Float ) -> Svg msg
+-- viewGraph model =
+--     svg [ viewBox 0 0 w he ]
+--         [ g [ transform [ Translate (padding - 1) (he - padding) ] ]
+--             [ xAxis model ]
+--         , g [ transform [ Translate (padding - 1) padding ] ]
+--             [ yAxis ]
+--         , g [ transform [ Translate padding padding ], class [ "series" ] ]
+--             [ Path.element (area model) [ strokeWidth 3, fill <| Fill <| Color.rgba 1 0 0 0.54 ]
+--             , Path.element (line model) [ stroke (Color.rgb 1 0 0), strokeWidth 3, fill FillNone ]
+--             ]
+--         ]
+-- now_y =
+--     2019
+-- weeks_in_year =
+--     52.1429
+-- timeSeries model =
+--     let
+--         loan =
+--             model.loan
+--         pay =
+--             model.wPayment
+--         l =
+--             loan.amount :: List.repeat loan.term 0.0
+--         combine n f =
+--             ( now_y + n
+--             , max 0 <| loan.amount * (1 + loan.ratePerAnnum) - (pay * weeks_in_year * toFloat n)
+--             )
+--     in
+--     List.indexedMap combine l
 
 
 view : Model -> Html Msg
@@ -472,15 +434,16 @@ view model =
     div []
         [ div [ class [ "error" ] ] []
         , div []
-            [ viewConstraint model
-            , viewHouse model
-            , viewLoan model
-            , viewDeposit model
-            , viewInsurance model
-            , viewTax model
-            , viewContract model
-            , viewPayment model
-            , viewGraph <| timeSeries model
+            [ -- viewConstraint model
+              viewHouse model
+
+            -- , viewLoan model
+            -- , viewDeposit model
+            -- , viewInsurance model
+            -- , viewTax model
+            -- , viewContract model
+            -- , viewPayment model
+            -- , viewGraph <| timeSeries model
             ]
         ]
 

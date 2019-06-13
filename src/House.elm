@@ -1,4 +1,4 @@
-module House exposing (Model, VerifiedModel, init, validator)
+module House exposing (Model, VerifiedModel, init, initVerified, validator)
 
 import Validators exposing (isFloat)
 import Verify exposing (Validator, validate, verify)
@@ -23,9 +23,13 @@ init =
     Model "500000" "0.1" "0"
 
 
+initVerified =
+    VerifiedModel 500000 0.1 0
+
+
 validator : Validator String Model VerifiedModel
 validator =
     validate VerifiedModel
-        |> verify .value (isFloat "must be a float")
-        |> verify .ratePerAnnum (isFloat "must be a float")
-        |> verify .extras (isFloat "must be a float")
+        |> verify .value (isFloat "House value must be a float")
+        |> verify .ratePerAnnum (isFloat "House rate must be a float")
+        |> verify .extras (isFloat "House extras must be a float")
