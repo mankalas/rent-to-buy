@@ -101,7 +101,7 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Model
-        (Field "House value" "" Nothing)
+        (Field "House value ($)" "" Nothing)
         0.0
       -- (Deposit 10000.0 50)
       -- (Loan 500000 20 0.06)
@@ -348,7 +348,7 @@ viewHouseForm : Model -> Html Msg
 viewHouseForm model =
     div []
         [ dl []
-            [ dt [] [ text "House value" ]
+            [ dt [] [ text model.f_hv.name ]
             , dd [] [ input [ value model.f_hv.value, onInput ChangeHouseValue ] [] ]
             , case model.f_hv.error of
                 Nothing ->
