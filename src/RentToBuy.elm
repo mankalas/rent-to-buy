@@ -86,6 +86,8 @@ type alias Field =
 type alias Model =
     { f_hv : Field
     , c_hv : Float
+    , f_lt : Field
+    , c_lt : Int
 
     -- , deposit : Deposit
     -- , loan : Loan
@@ -103,6 +105,8 @@ init _ =
     ( Model
         (Field "House value ($)" "" Nothing)
         0.0
+        (Field "Loan term (y)" "" Nothing)
+        0
       -- (Deposit 10000.0 50)
       -- (Loan 500000 20 0.06)
       -- 3000
@@ -360,6 +364,22 @@ viewHouseForm model =
         ]
 
 
+viewLoanForm : Model -> Html Msg
+viewLoanForm model =
+    div []
+        [ dl []
+            [ dt [] [ text model.f_lt.name ]
+            , dd [] [ input [ value model.f_lt.value, onInput ChangeLoanTerm ] [] ]
+            , case model.f_hv.error of
+                Nothing ->
+                    text ""
+
+                Just e ->
+                    dd [] [ text e ]
+            ]
+        ]
+
+
 
 -- viewDeposit : Model -> Html Msg
 -- viewDeposit model =
@@ -470,16 +490,39 @@ viewHouseCalculus model =
         ]
 
 
+viewLoanCalculus : Model -> Html Msg
+viewLoanCalculus model =
+    div []
+        [ dl []
+            [ dt [] [ text "Loan term" ]
+            , dd []
+                [ text <|
+                    String.fromInt model.c_lt
+                        ++ " year"
+                        ++ (if model.c_lt > 1 then
+                                "s"
+
+                            else
+                                ""
+                           )
+                ]
+            ]
+        ]
+
+
 viewForm : Model -> Html Msg
 viewForm model =
     div []
-        [ viewHouseForm model ]
+        [ viewHouseForm model
+        , viewLoanForm model
+        ]
 
 
 viewCalculus : Model -> Html Msg
 viewCalculus model =
     div [ style "border" "solid" ]
         [ viewHouseCalculus model
+        , viewLoanCalculus model
         ]
 
 
