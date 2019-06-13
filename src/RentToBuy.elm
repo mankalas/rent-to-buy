@@ -239,226 +239,90 @@ viewConstraint model =
         ]
 
 
-viewLoan : Model -> Html Msg
-viewLoan model =
+recordTable : String -> List String -> List ( String, String -> Msg ) -> Html Msg
+recordTable table_title col_titles v_msg_list =
+    let
+        col_th t =
+            th [] [ text t ]
+
+        col_td ( v, msg ) =
+            td []
+                [ input
+                    [ value v
+                    , onInput msg
+                    ]
+                    []
+                ]
+    in
     table []
         [ thead []
-            [ tr [] [ th [ colspan 2, style "text-align" "center" ] [ text "Loan" ] ]
-            , tr []
-                [ th [] [ text "Amount" ]
-                , th [] [ text "Rate" ]
-                , th [] [ text "Term (y.)" ]
-                ]
+            [ tr []
+                [ th [ colspan <| List.length col_titles, style "text-align" "center" ] [ text table_title ] ]
+            , tr [] <| List.map col_th col_titles
             ]
         , tbody []
-            [ tr []
-                [ td []
-                    [ input
-                        [ placeholder "Amount"
-                        , value <| String.fromFloat model.loan.amount
-                        , onInput ChangeLoanAmount
-                        ]
-                        []
-                    ]
-                , td []
-                    [ input
-                        [ placeholder "Rate"
-                        , value <| String.fromFloat model.loan.ratePerAnnum
-                        , onInput ChangeLoanRate
-                        ]
-                        []
-                    ]
-                , td []
-                    [ input
-                        [ placeholder "Term (years)"
-                        , value <| String.fromInt model.loan.term
-                        , onInput ChangeLoanTerm
-                        ]
-                        []
-                    ]
-                ]
+            [ tr [] <| List.map col_td v_msg_list
             ]
+        ]
+
+
+viewLoan : Model -> Html Msg
+viewLoan model =
+    recordTable "Loan"
+        [ "Amount", "Rate", "Term (y.)" ]
+        [ ( String.fromFloat model.loan.amount, ChangeLoanAmount )
+        , ( String.fromFloat model.loan.ratePerAnnum, ChangeLoanRate )
+        , ( String.fromInt model.loan.term, ChangeLoanTerm )
         ]
 
 
 viewHouse : Model -> Html Msg
 viewHouse model =
-    table []
-        [ thead []
-            [ tr []
-                [ th [ colspan 2, style "text-align" "center" ] [ text "House" ] ]
-            , tr []
-                [ th [] [ text "Value" ]
-                , th [] [ text "Rate" ]
-                , th [] [ text "Extras" ]
-                ]
-            ]
-        , tbody []
-            [ tr []
-                [ td []
-                    [ input
-                        [ placeholder "Value"
-                        , value <| String.fromFloat model.house.value
-                        , onInput ChangeHouseValue
-                        ]
-                        []
-                    ]
-                , td []
-                    [ input
-                        [ placeholder "Market rate"
-                        , value <| String.fromFloat model.house.ratePerAnnum
-                        , onInput ChangeHouseRate
-                        ]
-                        []
-                    ]
-                , td []
-                    [ input
-                        [ placeholder "Extras"
-                        , value <| String.fromFloat model.house.extras
-                        , onInput ChangeHouseExtras
-                        ]
-                        []
-                    ]
-                ]
-            ]
+    recordTable "House"
+        [ "Value", "Market Rate", "Extras" ]
+        [ ( String.fromFloat model.house.value, ChangeHouseValue )
+        , ( String.fromFloat model.house.ratePerAnnum, ChangeHouseRate )
+        , ( String.fromFloat model.house.extras, ChangeHouseExtras )
         ]
 
 
 viewDeposit : Model -> Html Msg
 viewDeposit model =
-    table []
-        [ thead []
-            [ tr [] [ th [ style "text-align" "center", colspan 2 ] [ text "Deposit" ] ]
-            , tr []
-                [ th [] [ text "Current" ]
-                , th [] [ text "Weekly" ]
-                ]
-            ]
-        , tbody []
-            [ tr []
-                [ td []
-                    [ input
-                        [ placeholder "Deposit"
-                        , value <| String.fromFloat model.deposit.current
-                        , onInput ChangeCurrentDeposit
-                        ]
-                        []
-                    ]
-                , td []
-                    [ input
-                        [ placeholder "Weekly Deposit"
-                        , value <| String.fromFloat model.deposit.wContribution
-                        , onInput ChangeWeeklyDeposit
-                        ]
-                        []
-                    ]
-                ]
-            ]
+    recordTable "Deposit"
+        [ "Current", "Weekly" ]
+        [ ( String.fromFloat model.deposit.current, ChangeCurrentDeposit )
+        , ( String.fromFloat model.deposit.wContribution, ChangeWeeklyDeposit )
         ]
 
 
 viewInsurance : Model -> Html Msg
 viewInsurance model =
-    table []
-        [ thead []
-            [ tr []
-                [ th [] [ text "Insurance (yearly)" ] ]
-            ]
-        , tbody []
-            [ tr []
-                [ td []
-                    [ input
-                        [ placeholder "Insurance"
-                        , value <| String.fromFloat model.insurance
-                        , onInput ChangeInsurance
-                        ]
-                        []
-                    ]
-                ]
-            ]
-        ]
+    recordTable "Insurance"
+        [ "Yearly" ]
+        [ ( String.fromFloat model.insurance, ChangeInsurance ) ]
 
 
 viewTax : Model -> Html Msg
 viewTax model =
-    table []
-        [ thead []
-            [ tr []
-                [ th [] [ text "Tax (yearly)" ] ]
-            ]
-        , tbody []
-            [ tr []
-                [ td []
-                    [ input
-                        [ placeholder "Tax"
-                        , value <| String.fromFloat model.tax
-                        , onInput ChangeTax
-                        ]
-                        []
-                    ]
-                ]
-            ]
-        ]
+    recordTable "Tax"
+        [ "Yearly" ]
+        [ ( String.fromFloat model.tax, ChangeTax ) ]
 
 
 viewContract : Model -> Html Msg
 viewContract model =
-    div []
-        [ h1 [] [ text "Contract" ]
-        , table []
-            [ thead []
-                [ tr []
-                    [ th [] [ text "Amount" ]
-                    , th [] [ text "Term" ]
-                    ]
-                ]
-            , tbody []
-                [ tr []
-                    [ td []
-                        [ input
-                            [ placeholder "Amount"
-                            , value <| String.fromFloat model.contract.amount
-                            , onInput ChangeContractAmount
-                            ]
-                            []
-                        ]
-                    , td []
-                        [ input
-                            [ placeholder "Term"
-                            , value <| String.fromInt model.contract.term
-                            , onInput ChangeContractTerm
-                            ]
-                            []
-                        ]
-                    ]
-                ]
-            ]
+    recordTable "Contract"
+        [ "Amount", "Term" ]
+        [ ( String.fromFloat model.contract.amount, ChangeContractAmount )
+        , ( String.fromInt model.contract.term, ChangeContractTerm )
         ]
 
 
 viewPayment : Model -> Html Msg
 viewPayment model =
-    div []
-        [ h1 [] [ text "Payment" ]
-        , table []
-            [ thead []
-                [ tr []
-                    [ th [] [ text "Weekly" ] ]
-                ]
-            , tbody []
-                [ tr []
-                    [ td []
-                        [ input
-                            [ placeholder "Payment"
-                            , value <| String.fromFloat model.wPayment
-                            , onInput ChangePayment
-                            ]
-                            []
-                        ]
-                    ]
-                ]
-            ]
-        ]
+    recordTable "Payment"
+        [ "Weekly" ]
+        [ ( String.fromFloat model.wPayment, ChangePayment ) ]
 
 
 w : Float
