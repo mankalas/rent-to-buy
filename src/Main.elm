@@ -84,9 +84,11 @@ type alias Model =
     , c_lt : Int
     , f_lr : Field
     , c_lr : Float
+    , c_ls : Float
     , c_la : Float
+    , c_li : Float
     , f_pay : Field
-    , c_pay : Float
+    , c_pay : Maybe Float
     , mode : Mode
 
     -- , deposit : Deposit
@@ -114,8 +116,10 @@ init _ =
         (Field "Loan rate (%)" "5" Nothing)
         5.0
         0.0
+        0.0
+        0.0
         (Field "Payment ($/w)" "500" Nothing)
-        500
+        Nothing
         House
       -- Loan amount
       -- (Deposit 10000.0 50)
@@ -200,12 +204,67 @@ updateField m s o_f v up_f up_c =
             updateCalculations <| up_f (up_c m f.value) (n_f |> resetError)
 
 
+wInY =
+    52
+
+
+wPayments : Int -> Float -> Float -> Float
+wPayments lt lr la =
+    let
+        n =
+            Debug.log "n = " (toFloat lt * wInY)
+
+        i =
+            Debug.log "i = " (lr / toFloat 100 / wInY)
+
+        d =
+            Debug.log "d =" ((((1 + i) ^ n) - 1) / (i * (1 + i) ^ n))
+    in
+    Debug.log "w_pay" (la / d)
+
+
+interests : Int -> Float -> Float -> Float -> Float -> Float
+interests lt lr la pay i =
+    let
+        weekly_rate =
+            Debug.log "week rate = " <| lr / toFloat 100 / wInY
+
+        weekly_interest =
+            Debug.log "week int. = " <| weekly_rate * la
+
+        principal_pay =
+            Debug.log "princ. pay = " <| (pay - weekly_interest)
+    in
+    if la > 505000 || weekly_interest < 0 then
+        i
+
+    else
+        interests lt lr (la - principal_pay) pay (i + weekly_interest)
+
+
+updateCalculations : Model -> Model
 updateCalculations m =
     let
         up_la =
             m.c_hv + m.c_he
+
+        up_ls =
+            up_la * ((1 + (m.c_lr / toFloat 100)) ^ toFloat m.c_lt)
+
+        pay =
+            wPayments m.c_lt m.c_lr up_la
+
+        up_pay =
+            if isModeHouse m then
+                Just pay
+
+            else
+                m.c_pay
+
+        up_li =
+            interests m.c_lt m.c_lr up_la (wPayments m.c_lt m.c_lr up_la) 0
     in
-    { m | c_la = up_la }
+    { m | c_la = up_la, c_ls = up_ls, c_pay = up_pay, c_li = up_li }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -299,7 +358,7 @@ update msg model =
                 model.f_pay
                 validateFloatField
                 (\m f -> { m | f_pay = f })
-                (\m c -> { m | c_pay = c })
+                (\m c -> { m | c_pay = Just c })
             , Cmd.none
             )
 
@@ -310,10 +369,14 @@ update msg model =
             ( model, Cmd.none )
 
         ChangeModeToHouse ->
-            ( { model | mode = House }, Cmd.none )
+            ( updateCalculations { model | mode = House }
+            , Cmd.none
+            )
 
         ChangeModeToPayment ->
-            ( { model | mode = Payment }, Cmd.none )
+            ( updateCalculations { model | mode = Payment }
+            , Cmd.none
+            )
 
 
 
@@ -430,6 +493,8 @@ viewLoanCalculus model =
                 [ viewCalculusField "Loan term" <| pluralize "year" "years" model.c_lt
                 , viewCalculusField "Loan rate" <| viewAsPercent model.c_lr
                 , viewCalculusField "Loan amount" <| viewAsDollar model.c_la
+                , viewCalculusField "Loan total" <| viewAsDollar model.c_ls
+                , viewCalculusField "Loan interests" <| viewAsDollar model.c_li
                 ]
         ]
 
@@ -439,7 +504,14 @@ viewPaymentCalculus model =
     div []
         [ dl [] <|
             List.concat
-                [ viewCalculusField "Weekly payment" <| viewAsDollar model.c_pay ]
+                [ viewCalculusField "Weekly payment" <|
+                    case model.c_pay of
+                        Nothing ->
+                            "N/A"
+
+                        Just f ->
+                            viewAsDollar f
+                ]
         ]
 
 
