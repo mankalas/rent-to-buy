@@ -1,9 +1,9 @@
-module Main exposing (Constraint(..), Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Loan, Model, Msg(..), Tax, init, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewConstraint, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm)
+module Main exposing (Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Loan, Mode(..), Model, Msg(..), Tax, init, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm, viewMode)
 
 import Browser
 import Chart
-import Html exposing (Html, button, dd, div, dl, dt, h1, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
-import Html.Attributes exposing (class, colspan, disabled, for, name, placeholder, style, type_, value)
+import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
+import Html.Attributes exposing (checked, class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
 import String.Verify exposing (isInt)
@@ -29,7 +29,7 @@ main =
 -- MODEL
 
 
-type Constraint
+type Mode
     = HouseC
     | PaymentC
 
@@ -85,6 +85,9 @@ type alias Model =
     , f_lr : Field
     , c_lr : Float
     , c_la : Float
+    , f_pay : Field
+    , c_pay : Float
+    , mode : Mode
 
     -- , deposit : Deposit
     -- , loan : Loan
@@ -92,7 +95,7 @@ type alias Model =
     -- , tax : Float
     -- , wPayment : Float
     -- , contract : Contract
-    -- , constraint : Constraint
+    -- , mode : Mode
     -- , errors : Maybe (List String)
     }
 
@@ -111,6 +114,9 @@ init _ =
         (Field "Loan rate (%)" "5" Nothing)
         5.0
         0.0
+        (Field "Payment ($/w)" "500" Nothing)
+        500
+        HouseC
       -- Loan amount
       -- (Deposit 10000.0 50)
       -- (Loan 500000 20 0.06)
@@ -285,7 +291,15 @@ update msg model =
             ( model, Cmd.none )
 
         ChangePayment s ->
-            ( model, Cmd.none )
+            ( updateField
+                model
+                s
+                model.f_pay
+                validateFloatField
+                (\m f -> { m | f_pay = f })
+                (\m c -> { m | c_pay = c })
+            , Cmd.none
+            )
 
         ChangeContractAmount s ->
             ( model, Cmd.none )
@@ -298,16 +312,16 @@ update msg model =
 -- VIEW
 
 
-viewConstraint : Model -> Html Msg
-viewConstraint model =
+viewMode : Model -> Html Msg
+viewMode model =
     div []
-        [ label [ for "h_constraint" ] [ text "House" ]
+        [ label [ for "h_mode" ] [ text "House" ]
         , input
-            [ type_ "radio", name "p_constraint" ]
+            [ type_ "radio", name "p_mode" ]
             []
-        , label [ for "p_constraint" ] [ text "Payment" ]
+        , label [ for "p_mode" ] [ text "Payment" ]
         , input
-            [ type_ "radio", name "h_constraint" ]
+            [ type_ "radio", name "h_mode" ]
             []
         ]
 
@@ -344,6 +358,15 @@ viewLoanForm model =
                 [ viewField model.f_lt ChangeLoanTerm
                 , viewField model.f_lr ChangeLoanRate
                 ]
+        ]
+
+
+viewPaymentForm : Model -> Html Msg
+viewPaymentForm model =
+    div []
+        [ dl [] <|
+            List.concat
+                [ viewField model.f_pay ChangePayment ]
         ]
 
 
@@ -394,11 +417,21 @@ viewLoanCalculus model =
         ]
 
 
+viewPaymentCalculus : Model -> Html Msg
+viewPaymentCalculus model =
+    div []
+        [ dl [] <|
+            List.concat
+                [ viewCalculusField "Weekly payment" <| viewAsDollar model.c_pay ]
+        ]
+
+
 viewForm : Model -> Html Msg
 viewForm model =
     div []
         [ viewHouseForm model
         , viewLoanForm model
+        , viewPaymentForm model
         ]
 
 
@@ -415,8 +448,19 @@ viewCalculus model =
     div [ style "border" "solid" ]
         [ viewHouseCalculus model
         , viewLoanCalculus model
+        , viewPaymentCalculus model
         , Chart.view (t model)
         ]
+
+
+isModeHouse : Model -> Bool
+isModeHouse m =
+    case m.mode of
+        HouseC ->
+            True
+
+        _ ->
+            False
 
 
 view : Model -> Browser.Document Msg
@@ -425,6 +469,9 @@ view model =
         body =
             [ div []
                 [ h1 [] [ text "Test Chart" ]
+                , fieldset []
+                    [ input [ type_ "radio", checked <| isModeHouse model ] []
+                    ]
                 , table []
                     [ tr [ class "error" ]
                         [ td [] [ viewForm model ]
