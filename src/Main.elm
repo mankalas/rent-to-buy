@@ -394,12 +394,20 @@ viewForm model =
         ]
 
 
+t : Model -> Chart.Model
+t m =
+    { hv = m.c_hv
+    , hr = m.c_hr
+    , lt = m.c_lt
+    }
+
+
 viewCalculus : Model -> Html Msg
 viewCalculus model =
     div [ style "border" "solid" ]
         [ viewHouseCalculus model
         , viewLoanCalculus model
-        , Chart.view
+        , Chart.view (t model)
         ]
 
 

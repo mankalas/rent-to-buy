@@ -1,4 +1,4 @@
-module Chart exposing (view)
+module Chart exposing (Model, view)
 
 import Chartjs.Chart as Chart exposing (..)
 import Chartjs.Common exposing (..)
@@ -10,39 +10,42 @@ import Chartjs.Options.Title exposing (..)
 import Color
 
 
-view =
+type alias Model =
+    { hv : Float
+    , hr : Float
+    , lt : Int
+    }
+
+
+houseData : Model -> List Float
+houseData m =
     let
-        chartDataset : L.DataSet
-        chartDataset =
-            let
-                d =
-                    L.defaultFromLabel "Bite"
+        market_update : Int -> Float -> Float
+        market_update n v =
+            v * ((1 + (m.hr / 100)) ^ toFloat n)
+    in
+    List.indexedMap market_update (List.repeat m.lt m.hv)
 
-                c =
-                    Just (All (Color.rgb 1 0 0))
-            in
-            { d
-                | data = [ 1, 2, 3 ]
-                , backgroundColor = c
-                , fill = Just L.Disabled
-                , borderColor = c
-            }
 
-        chartDataset2 =
-            let
-                d =
-                    L.defaultFromLabel "Bite"
+houseValueDataSet : Model -> L.DataSet
+houseValueDataSet m =
+    let
+        default =
+            L.defaultFromLabel <| String.fromFloat m.hv
 
-                c =
-                    Just (All (Color.rgb 0 1 0))
-            in
-            { d
-                | data = [ 3, 2, 1 ]
-                , backgroundColor = c
-                , fill = Just L.Disabled
-                , borderColor = c
-            }
+        color =
+            Just (All (Color.rgb 1 0 0))
+    in
+    { default
+        | data = houseData m
+        , backgroundColor = color
+        , fill = Just L.Disabled
+        , borderColor = color
+    }
 
+
+view m =
+    let
         title : Title
         title =
             defaultTitle
@@ -61,10 +64,9 @@ view =
 
         data : Data
         data =
-            { labels = [ "2019", "2020", "2021" ]
+            { labels = List.indexedMap (\n y -> String.fromInt (y + n)) (List.repeat m.lt 2019)
             , datasets =
-                [ LineDataSet chartDataset
-                , LineDataSet chartDataset2
+                [ LineDataSet (houseValueDataSet m)
                 ]
             }
 
@@ -75,4 +77,4 @@ view =
             , options = defaultOptions
             }
     in
-    chart 95 95 finalChart
+    Debug.log "Chart" (chart 95 95 finalChart)
