@@ -189,7 +189,15 @@ updateField m s o_f v up_f up_c =
             up_f m (n_f |> setError e)
 
         Ok f ->
-            up_f (up_c m f.value) (n_f |> resetError)
+            updateCalculations <| up_f (up_c m f.value) (n_f |> resetError)
+
+
+updateCalculations m =
+    let
+        up_la =
+            m.c_hv + m.c_he
+    in
+    { m | c_la = up_la }
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -205,7 +213,7 @@ update msg model =
                 model.f_hv
                 validateFloatField
                 (\m f -> { m | f_hv = f })
-                (\m c -> { m | c_hv = c, c_la = c + m.c_he })
+                (\m c -> { m | c_hv = c })
             , Cmd.none
             )
 
@@ -227,7 +235,7 @@ update msg model =
                 model.f_he
                 validateFloatField
                 (\m f -> { m | f_he = f })
-                (\m c -> { m | c_he = c, c_la = m.c_hv + c })
+                (\m c -> { m | c_he = c })
             , Cmd.none
             )
 
