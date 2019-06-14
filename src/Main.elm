@@ -100,16 +100,16 @@ type alias Model =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Model
-        (Field "House value ($)" "" Nothing)
-        0.0
-        (Field "Market rate (%)" "" Nothing)
-        0.0
-        (Field "House extras ($)" "" Nothing)
-        0.0
-        (Field "Loan term (y)" "" Nothing)
-        0
-        (Field "Loan rate (%)" "" Nothing)
-        0.0
+        (Field "House value ($)" "500000" Nothing)
+        500000.0
+        (Field "Market rate (%)" "10" Nothing)
+        10
+        (Field "House extras ($)" "1000" Nothing)
+        1000
+        (Field "Loan term (y)" "20" Nothing)
+        20
+        (Field "Loan rate (%)" "5" Nothing)
+        5.0
         0.0
       -- Loan amount
       -- (Deposit 10000.0 50)
