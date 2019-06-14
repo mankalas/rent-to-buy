@@ -1,22 +1,12 @@
-module RentToBuy exposing (main)
+module Main exposing (Constraint(..), Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Loan, Model, Msg(..), Tax, init, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewConstraint, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm)
 
-import Axis
 import Browser
-import Color exposing (Color)
+import Chart
 import Html exposing (Html, button, dd, div, dl, dt, h1, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
 import Html.Attributes exposing (class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
-import Path exposing (Path)
-import Scale exposing (ContinuousScale)
-import Shape
 import String.Verify exposing (isInt)
-import Time
-import TypedSvg exposing (g, svg)
-import TypedSvg.Attributes exposing (class, fill, stroke, transform, viewBox)
-import TypedSvg.Attributes.InPx exposing (strokeWidth)
-import TypedSvg.Core exposing (Svg)
-import TypedSvg.Types exposing (Fill(..), Transform(..))
 import Validators
 import Verify exposing (Validator, validate, verify)
 
@@ -27,7 +17,7 @@ import Verify exposing (Validator, validate, verify)
 
 main : Program () Model Msg
 main =
-    Browser.element
+    Browser.document
         { init = init
         , view = view
         , update = update
@@ -314,77 +304,6 @@ viewConstraint model =
         ]
 
 
-
--- w : Float
--- w =
---     900
--- he : Float
--- he =
---     450
--- padding : Float
--- padding =
---     50
--- xScale : ContinuousScale Float
--- xScale =
---     Scale.linear ( 0, w - 2 * padding ) ( now_y, toFloat <| now_y + 20 )
--- yScale : ContinuousScale Float
--- yScale =
---     Scale.linear ( he - 2 * padding, 0 ) ( 0, 500000 )
--- xAxis : List ( Int, Float ) -> Svg msg
--- xAxis model =
---     Axis.bottom [ Axis.tickCount (List.length model) ] xScale
--- yAxis : Svg msg
--- yAxis =
---     Axis.left [ Axis.tickCount 10 ] yScale
--- transformToLineData : ( Int, Float ) -> Maybe ( Float, Float )
--- transformToLineData ( x, y ) =
---     Just ( Scale.convert xScale (toFloat x), Scale.convert yScale y )
--- tranfromToAreaData : ( Int, Float ) -> Maybe ( ( Float, Float ), ( Float, Float ) )
--- tranfromToAreaData ( x, y ) =
---     Just
---         ( ( Scale.convert xScale (toFloat x), Tuple.first (Scale.rangeExtent yScale) )
---         , ( Scale.convert xScale (toFloat x), Scale.convert yScale y )
---         )
--- line : List ( Int, Float ) -> Path
--- line model =
---     List.map transformToLineData model
---         |> Shape.line Shape.monotoneInXCurve
--- area : List ( Int, Float ) -> Path
--- area model =
---     List.map tranfromToAreaData model
---         |> Shape.area Shape.monotoneInXCurve
--- viewGraph : List ( Int, Float ) -> Svg msg
--- viewGraph model =
---     svg [ viewBox 0 0 w he ]
---         [ g [ transform [ Translate (padding - 1) (he - padding) ] ]
---             [ xAxis model ]
---         , g [ transform [ Translate (padding - 1) padding ] ]
---             [ yAxis ]
---         , g [ transform [ Translate padding padding ], class [ "series" ] ]
---             [ Path.element (area model) [ strokeWidth 3, fill <| Fill <| Color.rgba 1 0 0 0.54 ]
---             , Path.element (line model) [ stroke (Color.rgb 1 0 0), strokeWidth 3, fill FillNone ]
---             ]
---         ]
--- now_y =
---     2019
--- weeks_in_year =
---     52.1429
--- timeSeries model =
---     let
---         loan =
---             model.loan
---         pay =
---             model.wPayment
---         l =
---             loan.amount :: List.repeat loan.term 0.0
---         combine n f =
---             ( now_y + n
---             , max 0 <| loan.amount * (1 + loan.ratePerAnnum) - (pay * weeks_in_year * toFloat n)
---             )
---     in
---     List.indexedMap combine l
-
-
 viewField f msg =
     [ dt [] [ text f.name ]
     , dd [] [ input [ value f.value, onInput msg ] [] ]
@@ -480,17 +399,28 @@ viewCalculus model =
     div [ style "border" "solid" ]
         [ viewHouseCalculus model
         , viewLoanCalculus model
+        , Chart.view
         ]
 
 
-view : Model -> Html Msg
+view : Model -> Browser.Document Msg
 view model =
-    table []
-        [ tr [ class [ "error" ] ]
-            [ td [] [ viewForm model ]
-            , td [] [ viewCalculus model ]
+    let
+        body =
+            [ div []
+                [ h1 [] [ text "Test Chart" ]
+                , table []
+                    [ tr [ class "error" ]
+                        [ td [] [ viewForm model ]
+                        , td [] [ viewCalculus model ]
+                        ]
+                    ]
+                ]
             ]
-        ]
+    in
+    { title = "Rent to buy"
+    , body = body
+    }
 
 
 
