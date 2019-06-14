@@ -30,8 +30,8 @@ main =
 
 
 type Mode
-    = HouseC
-    | PaymentC
+    = House
+    | Payment
 
 
 type alias Loan =
@@ -116,7 +116,7 @@ init _ =
         0.0
         (Field "Payment ($/w)" "500" Nothing)
         500
-        HouseC
+        House
       -- Loan amount
       -- (Deposit 10000.0 50)
       -- (Loan 500000 20 0.06)
@@ -152,6 +152,8 @@ type Msg
     | ChangePayment String
     | ChangeContractAmount String
     | ChangeContractTerm String
+    | ChangeModeToHouse
+    | ChangeModeToPayment
 
 
 setError : ( String, List String ) -> Field -> Field
@@ -307,6 +309,12 @@ update msg model =
         ChangeContractTerm s ->
             ( model, Cmd.none )
 
+        ChangeModeToHouse ->
+            ( { model | mode = House }, Cmd.none )
+
+        ChangeModeToPayment ->
+            ( { model | mode = Payment }, Cmd.none )
+
 
 
 -- VIEW
@@ -343,7 +351,11 @@ viewHouseForm model =
     div []
         [ dl [] <|
             List.concat
-                [ viewField model.f_hv ChangeHouseValue
+                [ if isModeHouse model then
+                    viewField model.f_hv ChangeHouseValue
+
+                  else
+                    [ text "" ]
                 , viewField model.f_hr ChangeHouseRate
                 , viewField model.f_he ChangeHouseExtras
                 ]
@@ -366,7 +378,12 @@ viewPaymentForm model =
     div []
         [ dl [] <|
             List.concat
-                [ viewField model.f_pay ChangePayment ]
+                [ if isModeHouse model then
+                    [ text "" ]
+
+                  else
+                    viewField model.f_pay ChangePayment
+                ]
         ]
 
 
@@ -456,7 +473,7 @@ viewCalculus model =
 isModeHouse : Model -> Bool
 isModeHouse m =
     case m.mode of
-        HouseC ->
+        House ->
             True
 
         _ ->
@@ -470,7 +487,22 @@ view model =
             [ div []
                 [ h1 [] [ text "Test Chart" ]
                 , fieldset []
-                    [ input [ type_ "radio", checked <| isModeHouse model ] []
+                    [ label [ for "mode_h" ] [ text "House" ]
+                    , input
+                        [ type_ "radio"
+                        , name "mode_h"
+                        , checked <| isModeHouse model
+                        , onClick ChangeModeToHouse
+                        ]
+                        []
+                    , label [ for "mode_p" ] [ text "Payment" ]
+                    , input
+                        [ type_ "radio"
+                        , name "mode_p"
+                        , checked <| not (isModeHouse model)
+                        , onClick ChangeModeToPayment
+                        ]
+                        []
                     ]
                 , table []
                     [ tr [ class "error" ]
