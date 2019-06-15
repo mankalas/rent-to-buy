@@ -1,4 +1,4 @@
-module Main exposing (Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Loan, Mode(..), Model, Msg(..), Tax, init, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm, viewMode)
+module Main exposing (Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Loan, Mode(..), Model, Msg(..), Tax, init, interests, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm, viewMode, wInterest, wPayments)
 
 import Browser
 import Chart
@@ -208,35 +208,47 @@ wInY =
     52
 
 
+wInM =
+    4.348214
+
+
 wPayments : Int -> Float -> Float -> Float
 wPayments lt lr la =
     let
         n =
-            Debug.log "n = " (toFloat lt * wInY)
+            toFloat lt * wInY
 
         i =
-            Debug.log "i = " (lr / toFloat 100 / wInY)
+            lr / toFloat 100 / wInY
 
         d =
-            Debug.log "d =" ((((1 + i) ^ n) - 1) / (i * (1 + i) ^ n))
+            (((1 + i) ^ n) - 1) / (i * (1 + i) ^ n)
     in
-    Debug.log "w_pay" (la / d)
+    la / d
+
+
+wRate lr =
+    lr / toFloat 100 / wInY
+
+
+wInterest lr la =
+    wRate lr * la
 
 
 interests : Int -> Float -> Float -> Float -> Float -> Float
 interests lt lr la pay i =
     let
         weekly_rate =
-            Debug.log "week rate = " <| lr / toFloat 100 / wInY
+            wRate lr
 
         weekly_interest =
-            Debug.log "week int. = " <| weekly_rate * la
+            weekly_rate * la
 
         principal_pay =
-            Debug.log "princ. pay = " <| (pay - weekly_interest)
+            pay - weekly_interest
     in
-    if la > 505000 || weekly_interest < 0 then
-        i
+    if weekly_interest < 0 then
+        i + weekly_interest
 
     else
         interests lt lr (la - principal_pay) pay (i + weekly_interest)
