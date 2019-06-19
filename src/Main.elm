@@ -235,8 +235,8 @@ wInterest lr la =
     wRate lr * la
 
 
-interests : Int -> Float -> Float -> Float -> Float -> Float
-interests lt lr la pay i =
+interests : Int -> Float -> Float -> Float -> Float
+interests lt lr la pay =
     let
         weekly_rate =
             wRate lr
@@ -247,11 +247,11 @@ interests lt lr la pay i =
         principal_pay =
             pay - weekly_interest
     in
-    if weekly_interest < 0 then
-        i + weekly_interest
+    if lt == 0 then
+        0
 
     else
-        interests lt lr (la - principal_pay) pay (i + weekly_interest)
+        weekly_interest + interests (lt - 1) lr (la - principal_pay) pay
 
 
 updateCalculations : Model -> Model
@@ -274,7 +274,7 @@ updateCalculations m =
                 m.c_pay
 
         up_li =
-            interests m.c_lt m.c_lr up_la (wPayments m.c_lt m.c_lr up_la) 0
+            interests m.c_lt m.c_lr up_la (wPayments m.c_lt m.c_lr up_la)
     in
     { m | c_la = up_la, c_ls = up_ls, c_pay = up_pay, c_li = up_li }
 

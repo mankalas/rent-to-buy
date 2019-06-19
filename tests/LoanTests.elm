@@ -32,8 +32,8 @@ suite =
                 \_ ->
                     let
                         total =
-                            interests 20 5 500000 760.78 0
+                            interests (20 * 52) 5 500000 760.78
                     in
-                    total |> Expect.within (Expect.Absolute 1) 291209.64
+                    total |> Expect.within (Expect.Absolute 2) 291209.64
             ]
         ]
