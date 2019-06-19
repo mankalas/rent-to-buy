@@ -1,4 +1,4 @@
-module Main exposing (Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Loan, Mode(..), Model, Msg(..), Tax, init, interests, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm, viewMode, wInterest, wPayments)
+module Main exposing (Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Loan, Mode(..), Model, Msg(..), Tax, init, interests, interestsAt, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm, viewMode, wInterest, wPayments)
 
 import Browser
 import Chart
@@ -235,8 +235,8 @@ wInterest lr la =
     wRate lr * la
 
 
-interests : Int -> Float -> Float -> Float -> Float
-interests lt lr la pay =
+interestsAt : Int -> Float -> Float -> Float -> Int -> Float
+interestsAt lt lr la pay n =
     let
         weekly_rate =
             wRate lr
@@ -247,11 +247,16 @@ interests lt lr la pay =
         principal_pay =
             pay - weekly_interest
     in
-    if lt == 0 then
+    if lt == n then
         0
 
     else
-        weekly_interest + interests (lt - 1) lr (la - principal_pay) pay
+        weekly_interest + interestsAt (lt - 1) lr (la - principal_pay) pay n
+
+
+interests : Int -> Float -> Float -> Float -> Float
+interests lt lr la pay =
+    interestsAt lt lr la pay 0
 
 
 updateCalculations : Model -> Model
