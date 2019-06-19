@@ -2,7 +2,7 @@ module LoanTests exposing (suite)
 
 import Expect exposing (Expectation, FloatingPointTolerance, equal, within)
 import Fuzz exposing (Fuzzer, int, list, string)
-import Main exposing (interests, interestsAt, wInterest, wPayments)
+import Loan exposing (interests, interestsAt, wInterest, wPayments)
 import Test exposing (..)
 
 

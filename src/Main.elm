@@ -1,4 +1,4 @@
-module Main exposing (Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Loan, Mode(..), Model, Msg(..), Tax, init, interests, interestsAt, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm, viewMode, wInterest, wPayments)
+module Main exposing (Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Loan, Mode(..), Model, Msg(..), Tax, init, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm, viewMode)
 
 import Browser
 import Chart
@@ -6,6 +6,7 @@ import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, input, label,
 import Html.Attributes exposing (checked, class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
+import Loan exposing (..)
 import String.Verify exposing (isInt)
 import Validators
 import Verify exposing (Validator, validate, verify)
@@ -202,61 +203,6 @@ updateField m s o_f v up_f up_c =
 
         Ok f ->
             updateCalculations <| up_f (up_c m f.value) (n_f |> resetError)
-
-
-wInY =
-    52
-
-
-wInM =
-    4.348214
-
-
-wPayments : Int -> Float -> Float -> Float
-wPayments lt lr la =
-    let
-        n =
-            toFloat lt * wInY
-
-        i =
-            lr / toFloat 100 / wInY
-
-        d =
-            (((1 + i) ^ n) - 1) / (i * (1 + i) ^ n)
-    in
-    la / d
-
-
-wRate lr =
-    lr / toFloat 100 / wInY
-
-
-wInterest lr la =
-    wRate lr * la
-
-
-interestsAt : Int -> Float -> Float -> Float -> Int -> Float
-interestsAt lt lr la pay n =
-    let
-        weekly_rate =
-            wRate lr
-
-        weekly_interest =
-            weekly_rate * la
-
-        principal_pay =
-            pay - weekly_interest
-    in
-    if lt == n then
-        0
-
-    else
-        weekly_interest + interestsAt (lt - 1) lr (la - principal_pay) pay n
-
-
-interests : Int -> Float -> Float -> Float -> Float
-interests lt lr la pay =
-    interestsAt lt lr la pay 0
 
 
 updateCalculations : Model -> Model
