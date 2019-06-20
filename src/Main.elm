@@ -90,6 +90,8 @@ type alias Model =
     , c_li : Float
     , f_pay : Field
     , c_pay : Maybe Float
+    , f_ct : Field
+    , c_ct : Int
     , mode : Mode
 
     -- , deposit : Deposit
@@ -121,6 +123,8 @@ init _ =
         0.0
         (Field "Payment ($/w)" "500" Nothing)
         Nothing
+        (Field "Contract term (y)" "3" Nothing)
+        0
         House
       -- Loan amount
       -- (Deposit 10000.0 50)
@@ -329,7 +333,15 @@ update msg model =
             ( model, Cmd.none )
 
         ChangeContractTerm s ->
-            ( model, Cmd.none )
+            ( updateField
+                model
+                s
+                model.f_ct
+                validateIntField
+                (\m f -> { m | f_ct = f })
+                (\m i -> { m | c_ct = i })
+            , Cmd.none
+            )
 
         ChangeModeToHouse ->
             ( updateCalculations { model | mode = House }
@@ -413,6 +425,15 @@ viewPaymentForm model =
         ]
 
 
+viewContractForm : Model -> Html Msg
+viewContractForm model =
+    div []
+        [ dl [] <|
+            List.concat
+                [ viewField model.f_ct ChangeContractTerm ]
+        ]
+
+
 viewCalculusField tt vt =
     [ dt [] [ text tt ]
     , dd [] [ text vt ]
@@ -484,6 +505,7 @@ viewForm model =
         [ viewHouseForm model
         , viewLoanForm model
         , viewPaymentForm model
+        , viewContractForm model
         ]
 
 
