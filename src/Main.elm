@@ -7,6 +7,7 @@ import Html.Attributes exposing (checked, class, colspan, disabled, for, name, p
 import Html.Events exposing (onClick, onInput)
 import Http
 import Loan exposing (..)
+import Round
 import String.Verify exposing (isInt)
 import Validators
 import Verify exposing (Validator, validate, verify)
@@ -89,7 +90,7 @@ type alias Model =
     , c_la : Float
     , c_li : Float
     , f_pay : Field
-    , c_pay : Maybe Float
+    , c_pay : Float
     , f_ct : Field
     , c_ct : Int
     , mode : Mode
@@ -107,25 +108,26 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( Model
-        (Field "House value ($)" "500000" Nothing)
-        500000.0
-        (Field "Market rate (%)" "10" Nothing)
-        10
-        (Field "House extras ($)" "1000" Nothing)
-        1000
-        (Field "Loan term (y)" "20" Nothing)
-        20
-        (Field "Loan rate (%)" "5" Nothing)
-        5.0
-        0.0
-        0.0
-        0.0
-        (Field "Payment ($/w)" "500" Nothing)
-        Nothing
-        (Field "Contract term (y)" "3" Nothing)
-        0
-        House
+    ( updateCalculations <|
+        Model
+            (Field "House value ($)" "500000" Nothing)
+            500000.0
+            (Field "Market rate (%)" "10" Nothing)
+            10
+            (Field "House extras ($)" "1000" Nothing)
+            1000
+            (Field "Loan term (y)" "20" Nothing)
+            20
+            (Field "Loan rate (%)" "5" Nothing)
+            5.0
+            0.0
+            0.0
+            0.0
+            (Field "Payment ($/w)" "500" Nothing)
+            500.0
+            (Field "Contract term (y)" "3" Nothing)
+            3
+            House
       -- Loan amount
       -- (Deposit 10000.0 50)
       -- (Loan 500000 20 0.06)
@@ -215,21 +217,21 @@ updateCalculations m =
         up_la =
             m.c_hv + m.c_he
 
-        up_ls =
-            up_la * ((1 + (m.c_lr / toFloat 100)) ^ toFloat m.c_lt)
-
         pay =
             wPayments m.c_lt m.c_lr up_la
 
         up_pay =
             if isModeHouse m then
-                Just pay
+                pay
 
             else
                 m.c_pay
 
         up_li =
-            interests m.c_lt m.c_lr up_la (wPayments m.c_lt m.c_lr up_la)
+            interests (52 * m.c_lt) m.c_lr up_la (wPayments m.c_lt m.c_lr up_la)
+
+        up_ls =
+            up_la + up_li
     in
     { m | c_la = up_la, c_ls = up_ls, c_pay = up_pay, c_li = up_li }
 
@@ -325,7 +327,7 @@ update msg model =
                 model.f_pay
                 validateFloatField
                 (\m f -> { m | f_pay = f })
-                (\m c -> { m | c_pay = Just c })
+                (\m c -> { m | c_pay = c })
             , Cmd.none
             )
 
@@ -441,7 +443,7 @@ viewCalculusField tt vt =
 
 
 viewAsDollar f =
-    "$ " ++ String.fromFloat f
+    "$ " ++ Round.round 2 f
 
 
 viewAsPercent f =
@@ -488,13 +490,7 @@ viewPaymentCalculus model =
     div []
         [ dl [] <|
             List.concat
-                [ viewCalculusField "Weekly payment" <|
-                    case model.c_pay of
-                        Nothing ->
-                            "N/A"
-
-                        Just f ->
-                            viewAsDollar f
+                [ viewCalculusField "Weekly payment" <| viewAsDollar model.c_pay
                 ]
         ]
 
@@ -525,6 +521,24 @@ viewCalculus model =
         , viewPaymentCalculus model
         , Chart.view (t model)
         ]
+
+
+viewLandlord : Model -> Html Msg
+viewLandlord model =
+    div [ style "border" "solid" ]
+        [ ul []
+            [ li [] [ text <| "Borrows " ++ viewAsDollar model.c_la ]
+            , li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ]
+            , li [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ++ "..." ]
+            , li [] [ text <| "Has to reimburse " ++ (viewAsDollar <| (model.c_la - Loan.interestsAt (52 * model.c_lt) model.c_lr model.c_la model.c_pay (52 * (model.c_lt - model.c_ct)))) ]
+            ]
+        ]
+
+
+viewTenant : Model -> Html Msg
+viewTenant model =
+    div [ style "border" "solid" ]
+        [ text "t" ]
 
 
 isModeHouse : Model -> Bool
@@ -565,6 +579,8 @@ view model =
                     [ tr [ class "error" ]
                         [ td [] [ viewForm model ]
                         , td [] [ viewCalculus model ]
+                        , td [] [ viewLandlord model ]
+                        , td [] [ viewTenant model ]
                         ]
                     ]
                 ]
