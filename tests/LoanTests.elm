@@ -2,7 +2,7 @@ module LoanTests exposing (suite)
 
 import Expect exposing (Expectation, FloatingPointTolerance, equal, within)
 import Fuzz exposing (Fuzzer, int, list, string)
-import Loan exposing (interests, interestsAt, wInterest, wPayments)
+import Loan exposing (Model, interests, interestsAt, wInterest, wPayments)
 import Test exposing (..)
 
 
@@ -13,8 +13,11 @@ suite =
             [ test "Correct value" <|
                 \_ ->
                     let
+                        loan =
+                            Loan.Model 20 5 500000
+
                         p =
-                            wPayments 20 5 500000
+                            wPayments loan
                     in
                     p |> Expect.within (Expect.Absolute 1) 760.78
             ]
@@ -31,8 +34,11 @@ suite =
             [ test "Correct value" <|
                 \_ ->
                     let
+                        loan =
+                            Loan.Model (20 * 52) 5 500000
+
                         total =
-                            interests (20 * 52) 5 500000 760.78
+                            interests loan 760.78
                     in
                     total |> Expect.within (Expect.Absolute 2) 291209.64
             ]
@@ -40,8 +46,11 @@ suite =
             [ test "Correct value" <|
                 \_ ->
                     let
+                        loan =
+                            Loan.Model 52 10 10000
+
                         total =
-                            interestsAt 52 10 10000 100 (52 - 10)
+                            interestsAt loan 100 (52 - 10)
                     in
                     total |> Expect.within (Expect.Absolute 1) 185.28
             ]

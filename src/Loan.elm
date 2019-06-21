@@ -1,4 +1,11 @@
-module Loan exposing (interests, interestsAt, wInM, wInY, wInterest, wPayments, wRate)
+module Loan exposing (Model, interests, interestsAt, wInM, wInY, wInterest, wPayments, wRate)
+
+
+type alias Model =
+    { term : Int
+    , interest_rate : Float
+    , amount : Float
+    }
 
 
 wInY =
@@ -9,19 +16,19 @@ wInM =
     4.348214
 
 
-wPayments : Int -> Float -> Float -> Float
-wPayments lt lr la =
+wPayments : Model -> Float
+wPayments loan =
     let
         n =
-            toFloat lt * wInY
+            toFloat loan.term * wInY
 
         i =
-            lr / toFloat 100 / wInY
+            loan.interest_rate / toFloat 100 / wInY
 
         d =
             (((1 + i) ^ n) - 1) / (i * (1 + i) ^ n)
     in
-    la / d
+    loan.amount / d
 
 
 wRate lr =
@@ -32,25 +39,29 @@ wInterest lr la =
     wRate lr * la
 
 
-interestsAt : Int -> Float -> Float -> Float -> Int -> Float
-interestsAt lt lr la pay n =
+interestsAt : Model -> Float -> Int -> Float
+interestsAt loan pay n =
     let
         weekly_rate =
-            wRate lr
+            wRate loan.interest_rate
 
         weekly_interest =
-            weekly_rate * la
+            weekly_rate * loan.amount
 
         principal_pay =
             pay - weekly_interest
     in
-    if lt == n then
+    if loan.term == n then
         0
 
     else
-        weekly_interest + interestsAt (lt - 1) lr (la - principal_pay) pay n
+        let
+            new_loan =
+                { loan | term = loan.term - 1, amount = loan.amount - principal_pay }
+        in
+        weekly_interest + interestsAt new_loan pay n
 
 
-interests : Int -> Float -> Float -> Float -> Float
-interests lt lr la pay =
-    interestsAt lt lr la pay 0
+interests : Model -> Float -> Float
+interests loan pay =
+    interestsAt loan pay 0
