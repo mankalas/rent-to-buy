@@ -1,10 +1,18 @@
-module Loan exposing (Model, interests, interestsAt, total, wInM, wInY, wInterest, wPayments, wRate)
+module Loan exposing (Frequency(..), Model, interests, interestsAt, total, wInM, wInY, wInterest, wPayments, wRate)
+
+
+type Frequency
+    = Weekly
+    | Monthly
+    | Yearly
 
 
 type alias Model =
-    { term : Int
-    , interest_rate : Float
-    , amount : Float
+    { term : Int -- Months
+    , interest_rate : Float -- [0..1]
+    , amount : Float -- $
+    , coumpound : Frequency
+    , pay_back : Frequency
     }
 
 
