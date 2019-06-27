@@ -1,4 +1,4 @@
-module Loan exposing (Model, interests, interestsAt, wInM, wInY, wInterest, wPayments, wRate)
+module Loan exposing (Model, interests, interestsAt, total, wInM, wInY, wInterest, wPayments, wRate)
 
 
 type alias Model =
@@ -51,7 +51,7 @@ interestsAt loan pay n =
         principal_pay =
             pay - weekly_interest
     in
-    if loan.term == n then
+    if loan.term == n || loan.term <= 0 then
         0
 
     else
@@ -62,6 +62,15 @@ interestsAt loan pay n =
         weekly_interest + interestsAt new_loan pay n
 
 
-interests : Model -> Float -> Float
-interests loan pay =
-    interestsAt loan pay 0
+interests : Model -> Float
+interests loan =
+    let
+        w_pay =
+            wPayments loan
+    in
+    interestsAt loan w_pay 0
+
+
+total : Model -> Float
+total loan =
+    loan.amount + interests loan
