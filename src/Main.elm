@@ -1,8 +1,8 @@
-module Main exposing (Contract, Deposit, FField, Field, IField, Insurance, InterestRate, Mode(..), Model, Msg(..), Tax, init, main, pluralize, resetError, setError, setValue, subscriptions, update, updateField, validateFloatField, validateIntField, view, viewAsDollar, viewAsPercent, viewCalculus, viewCalculusField, viewField, viewForm, viewHouseCalculus, viewHouseForm, viewLoanCalculus, viewLoanForm, viewMode)
+module Main exposing (main)
 
 import Browser
 import Chart
-import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
+import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, h2, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
 import Html.Attributes exposing (checked, class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -36,23 +36,10 @@ type Mode
     | Payment
 
 
-type alias InterestRate =
-    { ratePerAnnum : Float
-    }
-
-
 type alias Deposit =
     { current : Float
     , wContribution : Float
     }
-
-
-type alias Insurance =
-    { yAmount : Float }
-
-
-type alias Tax =
-    { yAmount : Float }
 
 
 type alias Contract =
@@ -82,7 +69,13 @@ type alias Model =
     , c_pay : Float
     , f_ct : Field
     , c_ct : Int
+    , f_cd : Field
+    , c_cd : Float
     , mode : Mode
+    , f_tax : Field
+    , c_tax : Float
+    , f_insur : Field
+    , c_insur : Float
 
     -- , deposit : Deposit
     -- , loan : Loan
@@ -99,20 +92,26 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     ( updateCalculations <|
         Model
-            (Field "House value ($)" "500000" Nothing)
-            500000.0
+            (Field "House value ($)" "450000" Nothing)
+            450000.0
             (Field "Market rate (%)" "10" Nothing)
-            10
-            (Field "House extras ($)" "1000" Nothing)
-            1000
-            (Field "Loan term (y)" "20" Nothing)
+            0.1
+            (Field "House extras ($)" "0" Nothing)
+            0
+            (Field "Loan term (y)" "25" Nothing)
             (Field "Loan rate (%)" "5" Nothing)
-            (Loan.Model 20 5 500000)
+            (Loan.Model (52 * 25) 0.05 500000)
             (Field "Payment ($/w)" "500" Nothing)
             500.0
             (Field "Contract term (y)" "3" Nothing)
             3
+            (Field "Contract deposit ($)" "10000" Nothing)
+            10000
             House
+            (Field "Tax ($/y)" "1000" Nothing)
+            1000
+            (Field "Insurance ($/y)" "1000" Nothing)
+            1000
       -- Loan amount
       -- (Deposit 10000.0 50)
       -- (Loan 500000 20 0.06)
@@ -138,7 +137,6 @@ type Msg
     | ChangeHouseRate String
     | ChangeHouseExtras String
     | ChangeHouseValue String
-    | ChangeLoanAmount String
     | ChangeLoanRate String
     | ChangeLoanTerm String
     | ChangeCurrentDeposit String
@@ -146,8 +144,8 @@ type Msg
     | ChangeInsurance String
     | ChangeTax String
     | ChangePayment String
-    | ChangeContractAmount String
     | ChangeContractTerm String
+    | ChangeContractDeposit String
     | ChangeModeToHouse
     | ChangeModeToPayment
 
@@ -200,26 +198,26 @@ updateCalculations : Model -> Model
 updateCalculations m =
     let
         up_la =
-            m.c_hv + m.c_he
+            m.c_hv + m.c_he - m.c_cd
 
         old_loan =
             m.loan
 
         new_loan =
-            { old_loan | amount = m.c_hv + m.c_he }
+            { old_loan | amount = up_la }
 
         pay =
-            wPayments new_loan
+            Loan.payment new_loan
 
         up_pay =
             if isModeHouse m then
-                pay
+                pay + (m.c_insur + m.c_tax) / 52
 
             else
                 m.c_pay
 
         up_loan =
-            interests new_loan
+            Loan.interest new_loan
     in
     { m | loan = new_loan, c_pay = up_pay }
 
@@ -248,7 +246,7 @@ update msg model =
                 model.f_hr
                 validateFloatField
                 (\m f -> { m | f_hr = f })
-                (\m c -> { m | c_hr = c })
+                (\m c -> { m | c_hr = c / 100 })
             , Cmd.none
             )
 
@@ -260,17 +258,6 @@ update msg model =
                 validateFloatField
                 (\m f -> { m | f_he = f })
                 (\m c -> { m | c_he = c })
-            , Cmd.none
-            )
-
-        ChangeLoanAmount s ->
-            ( updateField
-                model
-                s
-                model.f_hr
-                validateFloatField
-                (\m f -> { m | f_hr = f })
-                (\m c -> { m | c_hr = c })
             , Cmd.none
             )
 
@@ -287,7 +274,7 @@ update msg model =
                             m.loan
 
                         nl =
-                            { l | term = c }
+                            { l | term = 52 * c }
                     in
                     { m | loan = nl }
                 )
@@ -307,7 +294,7 @@ update msg model =
                             m.loan
 
                         nl =
-                            { l | interest_rate = c }
+                            { l | interest_rate = c / 100 }
                     in
                     { m | loan = nl }
                 )
@@ -320,11 +307,27 @@ update msg model =
         ChangeWeeklyDeposit s ->
             ( model, Cmd.none )
 
-        ChangeInsurance s ->
-            ( model, Cmd.none )
-
         ChangeTax s ->
-            ( model, Cmd.none )
+            ( updateField
+                model
+                s
+                model.f_tax
+                validateFloatField
+                (\m f -> { m | f_tax = f })
+                (\m c -> { m | c_tax = c })
+            , Cmd.none
+            )
+
+        ChangeInsurance s ->
+            ( updateField
+                model
+                s
+                model.f_insur
+                validateFloatField
+                (\m f -> { m | f_insur = f })
+                (\m c -> { m | c_insur = c })
+            , Cmd.none
+            )
 
         ChangePayment s ->
             ( updateField
@@ -337,8 +340,16 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeContractAmount s ->
-            ( model, Cmd.none )
+        ChangeContractDeposit s ->
+            ( updateField
+                model
+                s
+                model.f_cd
+                validateFloatField
+                (\m f -> { m | f_cd = f })
+                (\m c -> { m | c_cd = c })
+            , Cmd.none
+            )
 
         ChangeContractTerm s ->
             ( updateField
@@ -438,7 +449,20 @@ viewContractForm model =
     div []
         [ dl [] <|
             List.concat
-                [ viewField model.f_ct ChangeContractTerm ]
+                [ viewField model.f_ct ChangeContractTerm
+                , viewField model.f_cd ChangeContractDeposit
+                ]
+        ]
+
+
+viewMaintenanceForm : Model -> Html Msg
+viewMaintenanceForm model =
+    div []
+        [ dl [] <|
+            List.concat
+                [ viewField model.f_tax ChangeTax
+                , viewField model.f_insur ChangeInsurance
+                ]
         ]
 
 
@@ -449,11 +473,11 @@ viewCalculusField tt vt =
 
 
 viewAsDollar f =
-    "$ " ++ Round.round 2 f
+    "$" ++ Round.round 2 f
 
 
 viewAsPercent f =
-    String.fromFloat f ++ " %"
+    Round.round 2 (100 * f) ++ " %"
 
 
 pluralize : String -> String -> Int -> String
@@ -482,11 +506,11 @@ viewLoanCalculus model =
     div []
         [ dl [] <|
             List.concat
-                [ viewCalculusField "Loan term" <| pluralize "year" "years" model.loan.term
+                [ viewCalculusField "Loan term" <| pluralize "year" "years" (model.loan.term // 52)
                 , viewCalculusField "Loan rate" <| viewAsPercent model.loan.interest_rate
                 , viewCalculusField "Loan amount" <| viewAsDollar model.loan.amount
-                , viewCalculusField "Loan total" <| viewAsDollar (Loan.total model.loan)
-                , viewCalculusField "Loan interests" <| viewAsDollar (Loan.interests model.loan)
+                , viewCalculusField "Loan interests" <| viewAsDollar (Loan.interest model.loan)
+                , viewCalculusField "Loan total" <| viewAsDollar (Loan.cost model.loan)
                 ]
         ]
 
@@ -496,7 +520,8 @@ viewPaymentCalculus model =
     div []
         [ dl [] <|
             List.concat
-                [ viewCalculusField "Weekly payment" <| viewAsDollar model.c_pay
+                [ viewCalculusField "Weekly payment (loan)" <| viewAsDollar (Loan.payment model.loan)
+                , viewCalculusField "Weekly payment (total)" <| viewAsDollar model.c_pay
                 ]
         ]
 
@@ -508,6 +533,7 @@ viewForm model =
         , viewLoanForm model
         , viewPaymentForm model
         , viewContractForm model
+        , viewMaintenanceForm model
         ]
 
 
@@ -532,11 +558,25 @@ viewCalculus model =
 viewLandlord : Model -> Html Msg
 viewLandlord model =
     div [ style "border" "solid" ]
-        [ ul []
+        [ h2 [] [ text "Landlord" ]
+        , ul []
             [ li [] [ text <| "Borrows " ++ viewAsDollar model.loan.amount ]
-            , li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ]
-            , li [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ++ "..." ]
-            , li [] [ text <| "Has to reimburse " ++ (viewAsDollar <| (model.loan.amount - Loan.interestsAt model.loan (Loan.wPayments model.loan) (52 * (model.loan.term - model.c_ct)))) ]
+            , li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ++ " per week" ]
+            ]
+        , h2 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
+        , let
+            left_to_pay =
+                Loan.amortBegBalance model.loan (52 * model.c_ct)
+
+            roi =
+                model.loan.amount - left_to_pay
+
+            roi_pc =
+                roi / model.c_cd
+          in
+          ul []
+            [ li [] [ text <| "Left to pay " ++ viewAsDollar left_to_pay ]
+            , li [] [ text <| "ROI " ++ viewAsDollar roi ++ " (" ++ viewAsPercent roi_pc ++ ")" ]
             ]
         ]
 
@@ -544,7 +584,17 @@ viewLandlord model =
 viewTenant : Model -> Html Msg
 viewTenant model =
     div [ style "border" "solid" ]
-        [ text "t" ]
+        [ h2 [] [ text "Tenant" ]
+        , ul []
+            [ li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ++ " per week" ]
+            , li [] [ text <| "Build deposit " ++ viewAsDollar 42 ++ " per week" ]
+            ]
+        , h2 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
+        , ul []
+            [ li [] [ text <| "Have cash deposit " ++ viewAsDollar 42 ]
+            , li [] [ text <| "Have house value deposit " ++ viewAsDollar (model.c_hv * ((1 + model.c_hr) ^ toFloat model.c_ct) - model.c_hv) ]
+            ]
+        ]
 
 
 isModeHouse : Model -> Bool
