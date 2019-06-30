@@ -36,18 +36,6 @@ type Mode
     | Payment
 
 
-type alias Deposit =
-    { current : Float
-    , wContribution : Float
-    }
-
-
-type alias Contract =
-    { amount : Float
-    , term : Int
-    }
-
-
 type alias Field =
     { name : String
     , value : String
@@ -76,6 +64,8 @@ type alias Model =
     , c_tax : Float
     , f_insur : Field
     , c_insur : Float
+    , f_twd : Field
+    , c_twd : Float
 
     -- , deposit : Deposit
     -- , loan : Loan
@@ -112,6 +102,8 @@ init _ =
             1000
             (Field "Insurance ($/y)" "1000" Nothing)
             1000
+            (Field "Tenant deposit ($/w)" "100" Nothing)
+            100
       -- Loan amount
       -- (Deposit 10000.0 50)
       -- (Loan 500000 20 0.06)
@@ -148,6 +140,7 @@ type Msg
     | ChangeContractDeposit String
     | ChangeModeToHouse
     | ChangeModeToPayment
+    | ChangeTenantDeposit String
 
 
 setError : ( String, List String ) -> Field -> Field
@@ -198,7 +191,7 @@ updateCalculations : Model -> Model
 updateCalculations m =
     let
         up_la =
-            m.c_hv + m.c_he - m.c_cd
+            calculateLoanAmount m
 
         old_loan =
             m.loan
@@ -211,7 +204,7 @@ updateCalculations m =
 
         up_pay =
             if isModeHouse m then
-                pay + (m.c_insur + m.c_tax) / 52
+                weeklyPayment m
 
             else
                 m.c_pay
@@ -220,6 +213,46 @@ updateCalculations m =
             Loan.interest new_loan
     in
     { m | loan = new_loan, c_pay = up_pay }
+
+
+weeklyPayment : Model -> Float
+weeklyPayment model =
+    Loan.payment model.loan + (model.c_insur + model.c_tax) / 52
+
+
+calculateLoanAmount : Model -> Float
+calculateLoanAmount model =
+    model.c_hv + model.c_he - model.c_cd
+
+
+builtDeposit : Model -> Float
+builtDeposit model =
+    model.c_twd * 52 * toFloat model.c_ct
+
+
+houseCapitalGain : Model -> Float
+houseCapitalGain model =
+    model.c_hv * ((1 + model.c_hr) ^ toFloat model.c_ct) - model.c_hv
+
+
+remainingLoan : Model -> Float
+remainingLoan model =
+    Loan.amortBegBalance model.loan (52 * model.c_ct)
+
+
+roiAmount : Model -> Float
+roiAmount model =
+    model.loan.amount - remainingLoan model
+
+
+roiPercent : Model -> Float
+roiPercent model =
+    roiAmount model / model.c_cd
+
+
+weeklySpending : Model -> Float
+weeklySpending model =
+    model.c_pay + model.c_twd
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -372,6 +405,17 @@ update msg model =
             , Cmd.none
             )
 
+        ChangeTenantDeposit s ->
+            ( updateField
+                model
+                s
+                model.f_twd
+                validateFloatField
+                (\m f -> { m | f_twd = f })
+                (\m c -> { m | c_twd = c })
+            , Cmd.none
+            )
+
 
 
 -- VIEW
@@ -466,6 +510,16 @@ viewMaintenanceForm model =
         ]
 
 
+viewTenantForm : Model -> Html Msg
+viewTenantForm model =
+    div []
+        [ dl [] <|
+            List.concat
+                [ viewField model.f_twd ChangeTenantDeposit
+                ]
+        ]
+
+
 viewCalculusField tt vt =
     [ dt [] [ text tt ]
     , dd [] [ text vt ]
@@ -534,6 +588,7 @@ viewForm model =
         , viewPaymentForm model
         , viewContractForm model
         , viewMaintenanceForm model
+        , viewTenantForm model
         ]
 
 
@@ -564,19 +619,9 @@ viewLandlord model =
             , li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ++ " per week" ]
             ]
         , h2 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
-        , let
-            left_to_pay =
-                Loan.amortBegBalance model.loan (52 * model.c_ct)
-
-            roi =
-                model.loan.amount - left_to_pay
-
-            roi_pc =
-                roi / model.c_cd
-          in
-          ul []
-            [ li [] [ text <| "Left to pay " ++ viewAsDollar left_to_pay ]
-            , li [] [ text <| "ROI " ++ viewAsDollar roi ++ " (" ++ viewAsPercent roi_pc ++ ")" ]
+        , ul []
+            [ li [] [ text <| "Left to pay " ++ viewAsDollar (remainingLoan model) ]
+            , li [] [ text <| "ROI " ++ viewAsDollar (roiAmount model) ++ " (" ++ viewAsPercent (roiPercent model) ++ ")" ]
             ]
         ]
 
@@ -586,13 +631,13 @@ viewTenant model =
     div [ style "border" "solid" ]
         [ h2 [] [ text "Tenant" ]
         , ul []
-            [ li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ++ " per week" ]
-            , li [] [ text <| "Build deposit " ++ viewAsDollar 42 ++ " per week" ]
+            [ li [] [ text <| "Spends " ++ viewAsDollar (weeklySpending model) ++ " per week" ]
+            , li [] [ text <| "Including " ++ viewAsDollar model.c_twd ++ " deposit per week" ]
             ]
         , h2 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
         , ul []
-            [ li [] [ text <| "Have cash deposit " ++ viewAsDollar 42 ]
-            , li [] [ text <| "Have house value deposit " ++ viewAsDollar (model.c_hv * ((1 + model.c_hr) ^ toFloat model.c_ct) - model.c_hv) ]
+            [ li [] [ text <| "Cash deposit of " ++ viewAsDollar (builtDeposit model) ]
+            , li [] [ text <| "House value increased by " ++ viewAsDollar (houseCapitalGain model) ]
             ]
         ]
 
