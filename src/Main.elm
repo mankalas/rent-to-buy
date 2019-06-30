@@ -31,11 +31,6 @@ main =
 -- MODEL
 
 
-type Mode
-    = House
-    | Payment
-
-
 type alias Field =
     { name : String
     , value : String
@@ -59,7 +54,6 @@ type alias Model =
     , c_ct : Int
     , f_cd : Field
     , c_cd : Float
-    , mode : Mode
     , f_tax : Field
     , c_tax : Float
     , f_insur : Field
@@ -97,7 +91,6 @@ init _ =
             3
             (Field "Contract deposit ($)" "10000" Nothing)
             10000
-            House
             (Field "Tax ($/y)" "1000" Nothing)
             1000
             (Field "Insurance ($/y)" "1000" Nothing)
@@ -138,8 +131,6 @@ type Msg
     | ChangePayment String
     | ChangeContractTerm String
     | ChangeContractDeposit String
-    | ChangeModeToHouse
-    | ChangeModeToPayment
     | ChangeTenantDeposit String
 
 
@@ -198,21 +189,11 @@ updateCalculations m =
 
         new_loan =
             { old_loan | amount = up_la }
-
-        pay =
-            Loan.payment new_loan
-
-        up_pay =
-            if isModeHouse m then
-                weeklyPayment m
-
-            else
-                m.c_pay
-
-        up_loan =
-            Loan.interest new_loan
     in
-    { m | loan = new_loan, c_pay = up_pay }
+    { m
+        | loan = new_loan
+        , c_pay = weeklyPayment m
+    }
 
 
 weeklyPayment : Model -> Float
@@ -395,16 +376,6 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeModeToHouse ->
-            ( updateCalculations { model | mode = House }
-            , Cmd.none
-            )
-
-        ChangeModeToPayment ->
-            ( updateCalculations { model | mode = Payment }
-            , Cmd.none
-            )
-
         ChangeTenantDeposit s ->
             ( updateField
                 model
@@ -419,20 +390,6 @@ update msg model =
 
 
 -- VIEW
-
-
-viewMode : Model -> Html Msg
-viewMode model =
-    div []
-        [ label [ for "h_mode" ] [ text "House" ]
-        , input
-            [ type_ "radio", name "p_mode" ]
-            []
-        , label [ for "p_mode" ] [ text "Payment" ]
-        , input
-            [ type_ "radio", name "h_mode" ]
-            []
-        ]
 
 
 viewField f msg =
@@ -452,11 +409,7 @@ viewHouseForm model =
     div []
         [ dl [] <|
             List.concat
-                [ if isModeHouse model then
-                    viewField model.f_hv ChangeHouseValue
-
-                  else
-                    [ text "" ]
+                [ viewField model.f_hv ChangeHouseValue
                 , viewField model.f_hr ChangeHouseRate
                 , viewField model.f_he ChangeHouseExtras
                 ]
@@ -470,20 +423,6 @@ viewLoanForm model =
             List.concat
                 [ viewField model.f_lt ChangeLoanTerm
                 , viewField model.f_lr ChangeLoanRate
-                ]
-        ]
-
-
-viewPaymentForm : Model -> Html Msg
-viewPaymentForm model =
-    div []
-        [ dl [] <|
-            List.concat
-                [ if isModeHouse model then
-                    [ text "" ]
-
-                  else
-                    viewField model.f_pay ChangePayment
                 ]
         ]
 
@@ -585,7 +524,6 @@ viewForm model =
     div []
         [ viewHouseForm model
         , viewLoanForm model
-        , viewPaymentForm model
         , viewContractForm model
         , viewMaintenanceForm model
         , viewTenantForm model
@@ -642,40 +580,12 @@ viewTenant model =
         ]
 
 
-isModeHouse : Model -> Bool
-isModeHouse m =
-    case m.mode of
-        House ->
-            True
-
-        _ ->
-            False
-
-
 view : Model -> Browser.Document Msg
 view model =
     let
         body =
             [ div []
-                [ h1 [] [ text "Test Chart" ]
-                , fieldset []
-                    [ label [ for "mode_h" ] [ text "House" ]
-                    , input
-                        [ type_ "radio"
-                        , name "mode_h"
-                        , checked <| isModeHouse model
-                        , onClick ChangeModeToHouse
-                        ]
-                        []
-                    , label [ for "mode_p" ] [ text "Payment" ]
-                    , input
-                        [ type_ "radio"
-                        , name "mode_p"
-                        , checked <| not (isModeHouse model)
-                        , onClick ChangeModeToPayment
-                        ]
-                        []
-                    ]
+                [ h1 [] [ text "Rent-to-buy scheme" ]
                 , table []
                     [ tr [ class "error" ]
                         [ td [] [ viewForm model ]
