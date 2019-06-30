@@ -60,15 +60,6 @@ type alias Model =
     , c_insur : Float
     , f_twd : Field
     , c_twd : Float
-
-    -- , deposit : Deposit
-    -- , loan : Loan
-    -- , insurance : Float
-    -- , tax : Float
-    -- , wPayment : Float
-    -- , contract : Contract
-    -- , mode : Mode
-    -- , errors : Maybe (List String)
     }
 
 
@@ -97,18 +88,6 @@ init _ =
             1000
             (Field "Tenant deposit ($/w)" "100" Nothing)
             100
-      -- Loan amount
-      -- (Deposit 10000.0 50)
-      -- (Loan 500000 20 0.06)
-      -- 3000
-      -- 3000
-      -- 650.0
-      -- (Contract 500000.0 (12 * 3))
-      -- HouseC
-      -- Nothing
-      -- (VerifiedModel
-      --     House.initVerified
-      -- )
     , Cmd.none
     )
 
@@ -124,8 +103,6 @@ type Msg
     | ChangeHouseValue String
     | ChangeLoanRate String
     | ChangeLoanTerm String
-    | ChangeCurrentDeposit String
-    | ChangeWeeklyDeposit String
     | ChangeInsurance String
     | ChangeTax String
     | ChangePayment String
@@ -314,12 +291,6 @@ update msg model =
                 )
             , Cmd.none
             )
-
-        ChangeCurrentDeposit s ->
-            ( model, Cmd.none )
-
-        ChangeWeeklyDeposit s ->
-            ( model, Cmd.none )
 
         ChangeTax s ->
             ( updateField
