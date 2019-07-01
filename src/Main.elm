@@ -1,8 +1,13 @@
 module Main exposing (main)
 
+import Bootstrap.Alert as Alert
+import Bootstrap.Form as Form
+import Bootstrap.Form.Input as Input
+import Bootstrap.Grid as Grid
+import Bootstrap.Grid.Col as Col
 import Browser
 import Chart
-import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, h2, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
+import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, h2, h3, h4, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
 import Html.Attributes exposing (checked, class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -166,10 +171,13 @@ updateCalculations m =
 
         new_loan =
             { old_loan | amount = up_la }
+
+        wpay =
+            weeklyPayment { m | loan = new_loan }
     in
     { m
         | loan = new_loan
-        , c_pay = weeklyPayment m
+        , c_pay = wpay
     }
 
 
@@ -364,70 +372,66 @@ update msg model =
 
 
 viewField f msg =
-    [ dt [] [ text f.name ]
-    , dd [] [ input [ value f.value, onInput msg ] [] ]
-    , case f.error of
-        Nothing ->
-            text ""
+    [ Form.colLabelSm [] [ text f.name ]
+    , Form.col []
+        [ case f.error of
+            Nothing ->
+                Input.text [ Input.small, Input.value f.value, Input.onInput msg, Input.success ]
 
-        Just e ->
-            dd [] [ text e ]
+            Just e ->
+                Input.text [ Input.large, Input.value f.value, Input.onInput msg, Input.danger ]
+        ]
     ]
 
 
 viewHouseForm : Model -> Html Msg
 viewHouseForm model =
-    div []
-        [ dl [] <|
-            List.concat
-                [ viewField model.f_hv ChangeHouseValue
-                , viewField model.f_hr ChangeHouseRate
-                , viewField model.f_he ChangeHouseExtras
-                ]
-        ]
+    Form.row [] <|
+        List.concat
+            [ viewField model.f_hv ChangeHouseValue
+            , viewField model.f_hr ChangeHouseRate
+            , viewField model.f_he ChangeHouseExtras
+            ]
 
 
 viewLoanForm : Model -> Html Msg
 viewLoanForm model =
-    div []
-        [ dl [] <|
-            List.concat
-                [ viewField model.f_lt ChangeLoanTerm
-                , viewField model.f_lr ChangeLoanRate
-                ]
-        ]
+    Form.row [] <|
+        List.concat
+            [ viewField model.f_lt ChangeLoanTerm
+            , viewField model.f_lr ChangeLoanRate
+            , [ Form.col [] [], Form.col [] [] ]
+            ]
 
 
 viewContractForm : Model -> Html Msg
 viewContractForm model =
-    div []
-        [ dl [] <|
-            List.concat
-                [ viewField model.f_ct ChangeContractTerm
-                , viewField model.f_cd ChangeContractDeposit
-                ]
-        ]
+    Form.row [] <|
+        List.concat
+            [ viewField model.f_ct ChangeContractTerm
+            , viewField model.f_cd ChangeContractDeposit
+            , [ Form.col [] [], Form.col [] [] ]
+            ]
 
 
 viewMaintenanceForm : Model -> Html Msg
 viewMaintenanceForm model =
-    div []
-        [ dl [] <|
-            List.concat
-                [ viewField model.f_tax ChangeTax
-                , viewField model.f_insur ChangeInsurance
-                ]
-        ]
+    Form.row [] <|
+        List.concat
+            [ viewField model.f_tax ChangeTax
+            , viewField model.f_insur ChangeInsurance
+            , [ Form.col [] [], Form.col [] [] ]
+            ]
 
 
 viewTenantForm : Model -> Html Msg
 viewTenantForm model =
-    div []
-        [ dl [] <|
-            List.concat
-                [ viewField model.f_twd ChangeTenantDeposit
-                ]
-        ]
+    Form.row [] <|
+        List.concat
+            [ viewField model.f_twd ChangeTenantDeposit
+            , [ Form.col [] [], Form.col [] [] ]
+            , [ Form.col [] [], Form.col [] [] ]
+            ]
 
 
 viewCalculusField tt vt =
@@ -437,7 +441,7 @@ viewCalculusField tt vt =
 
 
 viewAsDollar f =
-    "$" ++ Round.round 2 f
+    "$ " ++ Round.round 2 f
 
 
 viewAsPercent f =
@@ -467,32 +471,21 @@ viewHouseCalculus model =
 
 viewLoanCalculus : Model -> Html Msg
 viewLoanCalculus model =
-    div []
-        [ dl [] <|
+    Alert.simpleSecondary []
+        [ h3 [] [ text "Loan " ]
+        , dl [] <|
             List.concat
-                [ viewCalculusField "Loan term" <| pluralize "year" "years" (model.loan.term // 52)
-                , viewCalculusField "Loan rate" <| viewAsPercent model.loan.interest_rate
-                , viewCalculusField "Loan amount" <| viewAsDollar model.loan.amount
-                , viewCalculusField "Loan interests" <| viewAsDollar (Loan.interest model.loan)
-                , viewCalculusField "Loan total" <| viewAsDollar (Loan.cost model.loan)
-                ]
-        ]
-
-
-viewPaymentCalculus : Model -> Html Msg
-viewPaymentCalculus model =
-    div []
-        [ dl [] <|
-            List.concat
-                [ viewCalculusField "Weekly payment (loan)" <| viewAsDollar (Loan.payment model.loan)
-                , viewCalculusField "Weekly payment (total)" <| viewAsDollar model.c_pay
+                [ viewCalculusField "Amount" <| viewAsDollar model.loan.amount
+                , viewCalculusField "Interest" <| viewAsDollar (Loan.interest model.loan)
+                , viewCalculusField "Cost" <| viewAsDollar (Loan.cost model.loan)
+                , viewCalculusField "Weekly payment " <| viewAsDollar (Loan.payment model.loan)
                 ]
         ]
 
 
 viewForm : Model -> Html Msg
 viewForm model =
-    div []
+    Form.form []
         [ viewHouseForm model
         , viewLoanForm model
         , viewContractForm model
@@ -509,25 +502,15 @@ t m =
     }
 
 
-viewCalculus : Model -> Html Msg
-viewCalculus model =
-    div [ style "border" "solid" ]
-        [ viewHouseCalculus model
-        , viewLoanCalculus model
-        , viewPaymentCalculus model
-        , Chart.view (t model)
-        ]
-
-
 viewLandlord : Model -> Html Msg
 viewLandlord model =
-    div [ style "border" "solid" ]
-        [ h2 [] [ text "Landlord" ]
+    Alert.simpleInfo []
+        [ h3 [] [ text "Landlord" ]
         , ul []
             [ li [] [ text <| "Borrows " ++ viewAsDollar model.loan.amount ]
             , li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ++ " per week" ]
             ]
-        , h2 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
+        , h4 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
         , ul []
             [ li [] [ text <| "Left to pay " ++ viewAsDollar (remainingLoan model) ]
             , li [] [ text <| "ROI " ++ viewAsDollar (roiAmount model) ++ " (" ++ viewAsPercent (roiPercent model) ++ ")" ]
@@ -537,13 +520,13 @@ viewLandlord model =
 
 viewTenant : Model -> Html Msg
 viewTenant model =
-    div [ style "border" "solid" ]
-        [ h2 [] [ text "Tenant" ]
+    Alert.simpleInfo []
+        [ h3 [] [ text "Tenant" ]
         , ul []
             [ li [] [ text <| "Spends " ++ viewAsDollar (weeklySpending model) ++ " per week" ]
             , li [] [ text <| "Including " ++ viewAsDollar model.c_twd ++ " deposit per week" ]
             ]
-        , h2 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
+        , h4 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
         , ul []
             [ li [] [ text <| "Cash deposit of " ++ viewAsDollar (builtDeposit model) ]
             , li [] [ text <| "House value increased by " ++ viewAsDollar (houseCapitalGain model) ]
@@ -557,12 +540,12 @@ view model =
         body =
             [ div []
                 [ h1 [] [ text "Rent-to-buy scheme" ]
-                , table []
-                    [ tr [ class "error" ]
-                        [ td [] [ viewForm model ]
-                        , td [] [ viewCalculus model ]
-                        , td [] [ viewLandlord model ]
-                        , td [] [ viewTenant model ]
+                , viewForm model
+                , Grid.container []
+                    [ Grid.row []
+                        [ Grid.col [ Col.xs3 ] [ viewLoanCalculus model ]
+                        , Grid.col [] [ viewLandlord model ]
+                        , Grid.col [] [ viewTenant model ]
                         ]
                     ]
                 ]
