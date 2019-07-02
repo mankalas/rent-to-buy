@@ -7,7 +7,7 @@ import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
 import Browser
 import Chart
-import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, h2, h3, h4, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
+import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, h3, h4, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
 import Html.Attributes exposing (checked, class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -199,6 +199,16 @@ builtDeposit model =
 houseCapitalGain : Model -> Float
 houseCapitalGain model =
     model.c_hv * ((1 + model.c_hr) ^ toFloat model.c_ct) - model.c_hv
+
+
+totalDeposit : Model -> Float
+totalDeposit model =
+    builtDeposit model + houseCapitalGain model
+
+
+depositRatio : Model -> Float
+depositRatio model =
+    totalDeposit model / model.c_hv
 
 
 remainingLoan : Model -> Float
@@ -476,6 +486,7 @@ viewLoanCalculus model =
         , dl [] <|
             List.concat
                 [ viewCalculusField "Amount" <| viewAsDollar model.loan.amount
+                , viewCalculusField "Term" <| pluralize "year" "years" (model.loan.term // 52)
                 , viewCalculusField "Interest" <| viewAsDollar (Loan.interest model.loan)
                 , viewCalculusField "Cost" <| viewAsDollar (Loan.cost model.loan)
                 , viewCalculusField "Weekly payment " <| viewAsDollar (Loan.payment model.loan)
@@ -504,7 +515,7 @@ t m =
 
 viewLandlord : Model -> Html Msg
 viewLandlord model =
-    Alert.simpleInfo []
+    Alert.simpleSuccess []
         [ h3 [] [ text "Landlord" ]
         , ul []
             [ li [] [ text <| "Borrows " ++ viewAsDollar model.loan.amount ]
@@ -528,8 +539,14 @@ viewTenant model =
             ]
         , h4 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
         , ul []
-            [ li [] [ text <| "Cash deposit of " ++ viewAsDollar (builtDeposit model) ]
-            , li [] [ text <| "House value increased by " ++ viewAsDollar (houseCapitalGain model) ]
+            [ li []
+                [ text <| "Total deposit of " ++ viewAsDollar (totalDeposit model)
+                , ul []
+                    [ li [] [ text <| "Cash deposit of " ++ viewAsDollar (builtDeposit model) ]
+                    , li [] [ text <| "House value increased by " ++ viewAsDollar (houseCapitalGain model) ]
+                    ]
+                ]
+            , li [] [ text <| "Which represents " ++ viewAsPercent (depositRatio model) ++ " of the required loan" ]
             ]
         ]
 
@@ -543,9 +560,9 @@ view model =
                 , viewForm model
                 , Grid.container []
                     [ Grid.row []
-                        [ Grid.col [ Col.xs3 ] [ viewLoanCalculus model ]
-                        , Grid.col [] [ viewLandlord model ]
-                        , Grid.col [] [ viewTenant model ]
+                        [ Grid.col [ Col.xs2 ] [ viewLoanCalculus model ]
+                        , Grid.col [ Col.xs5 ] [ viewLandlord model ]
+                        , Grid.col [ Col.xs5 ] [ viewTenant model ]
                         ]
                     ]
                 ]
