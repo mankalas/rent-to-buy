@@ -62,8 +62,8 @@ type alias Model =
     , c_se : Float
     , f_sm : Field
     , c_sm : Float
-    , f_tax : Field
-    , c_tax : Float
+    , f_rates : Field
+    , c_rates : Float
     , f_insur : Field
     , c_insur : Float
     , f_twd : Field
@@ -83,8 +83,8 @@ init _ =
             0.1
             (Field "House extras ($)" "0" Nothing)
             0
-            (Field "Loan term (y)" "25" Nothing)
-            (Field "Loan rate (%)" "5" Nothing)
+            (Field "Home Loan term (y)" "25" Nothing)
+            (Field "Home Loan rate (%)" "5" Nothing)
             (Loan.Model (52 * 25) 0.05 500000)
             (Field "Payment ($/w)" "500" Nothing)
             500.0
@@ -94,7 +94,7 @@ init _ =
             300000
             (Field "Seller mortgage ($)" "100000" Nothing)
             100000
-            (Field "Tax ($/y)" "1000" Nothing)
+            (Field "Rates ($/y)" "1000" Nothing)
             1000
             (Field "Insurance ($/y)" "1000" Nothing)
             1000
@@ -118,7 +118,7 @@ type Msg
     | ChangeLoanRate String
     | ChangeLoanTerm String
     | ChangeInsurance String
-    | ChangeTax String
+    | ChangeRates String
     | ChangePayment String
     | ChangeContractTerm String
     | ChangeSellerEquity String
@@ -194,7 +194,7 @@ updateCalculations m =
 
 weeklyPayment : Model -> Float
 weeklyPayment model =
-    Loan.payment model.loan + (model.c_insur + model.c_tax) / 52
+    Loan.payment model.loan + (model.c_insur + model.c_rates) / 52
 
 
 calculateLoanAmount : Model -> Float
@@ -321,14 +321,14 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeTax s ->
+        ChangeRates s ->
             ( updateField
                 model
                 s
-                model.f_tax
+                model.f_rates
                 validateFloatField
-                (\m f -> { m | f_tax = f })
-                (\m c -> { m | c_tax = c })
+                (\m f -> { m | f_rates = f })
+                (\m c -> { m | c_rates = c })
             , Cmd.none
             )
 
@@ -461,7 +461,7 @@ viewMaintenanceForm : Model -> Html Msg
 viewMaintenanceForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_tax ChangeTax
+            [ viewField model.f_rates ChangeRates
             , viewField model.f_insur ChangeInsurance
             , [ Form.col [] [], Form.col [] [] ]
             ]
