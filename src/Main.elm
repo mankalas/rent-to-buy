@@ -2,13 +2,16 @@ module Main exposing (main)
 
 import Bootstrap.Alert as Alert
 import Bootstrap.Badge as B
+import Bootstrap.Button as Button
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Grid as Grid
 import Bootstrap.Grid.Col as Col
+import Bootstrap.Popover as Popover
 import Browser
 import Chart
-import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, h3, h4, input, label, li, p, table, tbody, td, text, th, thead, tr, ul)
+import Debug
+import Html exposing (Html, button, dd, div, dl, dt, fieldset, h1, h3, h4, input, label, li, p, span, table, tbody, td, text, th, thead, tr, ul)
 import Html.Attributes exposing (checked, class, colspan, disabled, for, name, placeholder, style, type_, value)
 import Html.Events exposing (onClick, onInput)
 import Http
@@ -41,6 +44,7 @@ type alias Field =
     { name : String
     , value : String
     , error : Maybe String
+    , popoverState : Popover.State
     }
 
 
@@ -77,30 +81,30 @@ init : () -> ( Model, Cmd Msg )
 init _ =
     ( updateCalculations <|
         Model
-            (Field "House value ($)" "450000" Nothing)
+            (Field "House value ($)" "450000" Nothing Popover.initialState)
             450000.0
-            (Field "Market rate (%)" "10" Nothing)
+            (Field "Market rate (%)" "10" Nothing Popover.initialState)
             0.1
-            (Field "House extras ($)" "0" Nothing)
+            (Field "House extras ($)" "0" Nothing Popover.initialState)
             0
-            (Field "Home Loan term (y)" "25" Nothing)
-            (Field "Home Loan rate (%)" "5" Nothing)
+            (Field "Home Loan term (y)" "25" Nothing Popover.initialState)
+            (Field "Home Loan rate (%)" "5" Nothing Popover.initialState)
             (Loan.Model (52 * 25) 0.05 500000)
-            (Field "Payment ($/w)" "500" Nothing)
+            (Field "Payment ($/w)" "500" Nothing Popover.initialState)
             500.0
-            (Field "Contract term (y)" "3" Nothing)
+            (Field "Contract term (y)" "3" Nothing Popover.initialState)
             3
-            (Field "Seller equity ($)" "300000" Nothing)
+            (Field "Seller equity ($)" "300000" Nothing Popover.initialState)
             300000
-            (Field "Seller mortgage ($)" "100000" Nothing)
+            (Field "Seller mortgage ($)" "100000" Nothing Popover.initialState)
             100000
-            (Field "Rates ($/y)" "1000" Nothing)
+            (Field "Rates ($/y)" "1000" Nothing Popover.initialState)
             1000
-            (Field "Insurance ($/y)" "1000" Nothing)
+            (Field "Insurance ($/y)" "1000" Nothing Popover.initialState)
             1000
-            (Field "Buyer deposit ($/w)" "100" Nothing)
+            (Field "Buyer deposit ($/w)" "100" Nothing Popover.initialState)
             100
-            (Field "Buyer bond ($/w)" "100" Nothing)
+            (Field "Buyer bond ($/w)" "100" Nothing Popover.initialState)
             100
     , Cmd.none
     )
@@ -125,6 +129,7 @@ type Msg
     | ChangeSellerMortgage String
     | ChangeBuyerDeposit String
     | ChangeBuyerBond String
+    | HouseValuePopoverMsg Popover.State
 
 
 setError : ( String, List String ) -> Field -> Field
@@ -409,13 +414,41 @@ update msg model =
             , Cmd.none
             )
 
+        HouseValuePopoverMsg s ->
+            ( let
+                f_hv =
+                    model.f_hv
+
+                n_f_hv =
+                    { f_hv | popoverState = s }
+              in
+              { model | f_hv = n_f_hv }
+            , Cmd.none
+            )
+
 
 
 -- VIEW
 
 
 viewField f msg =
-    [ Form.colLabelSm [] [ text f.name ]
+    [ Form.colLabelSm []
+        [ text f.name
+        , Popover.config
+            (Button.button
+                [ Button.small
+                , Button.primary
+                , Button.attrs <|
+                    Popover.onHover f.popoverState HouseValuePopoverMsg
+                ]
+                [ text "?" ]
+            )
+            |> Popover.right
+            |> Popover.titleH4 [] [ text "Username help" ]
+            |> Popover.content []
+                [ text "Your username must not contain numbers..." ]
+            |> Popover.view f.popoverState
+        ]
     , Form.col []
         [ case f.error of
             Nothing ->
