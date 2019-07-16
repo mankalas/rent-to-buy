@@ -57,8 +57,8 @@ type alias Model =
     , c_pay : Float
     , f_ct : Field
     , c_ct : Int
-    , f_cd : Field
-    , c_cd : Float
+    , f_ce : Field
+    , c_ce : Float
     , f_tax : Field
     , c_tax : Float
     , f_insur : Field
@@ -85,8 +85,8 @@ init _ =
             500.0
             (Field "Contract term (y)" "3" Nothing)
             3
-            (Field "Contract deposit ($)" "10000" Nothing)
-            10000
+            (Field "Seller equity ($)" "400000" Nothing)
+            400000
             (Field "Tax ($/y)" "1000" Nothing)
             1000
             (Field "Insurance ($/y)" "1000" Nothing)
@@ -112,7 +112,7 @@ type Msg
     | ChangeTax String
     | ChangePayment String
     | ChangeContractTerm String
-    | ChangeContractDeposit String
+    | ChangeSellerEquity String
     | ChangeTenantDeposit String
 
 
@@ -188,7 +188,7 @@ weeklyPayment model =
 
 calculateLoanAmount : Model -> Float
 calculateLoanAmount model =
-    model.c_hv + model.c_he - model.c_cd
+    model.c_hv + model.c_he
 
 
 builtDeposit : Model -> Float
@@ -206,9 +206,14 @@ totalDeposit model =
     builtDeposit model + houseCapitalGain model
 
 
-depositRatio : Model -> Float
-depositRatio model =
-    totalDeposit model / model.c_hv
+lvrSeller : Model -> Float
+lvrSeller model =
+    model.loan.amount / (model.c_ce + model.c_hv)
+
+
+lvrBuyer : Model -> Float
+lvrBuyer model =
+    1 - totalDeposit model / model.c_hv
 
 
 remainingLoan : Model -> Float
@@ -219,11 +224,6 @@ remainingLoan model =
 roiAmount : Model -> Float
 roiAmount model =
     model.loan.amount - remainingLoan model
-
-
-roiPercent : Model -> Float
-roiPercent model =
-    roiAmount model / model.c_cd
 
 
 weeklySpending : Model -> Float
@@ -343,14 +343,14 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeContractDeposit s ->
+        ChangeSellerEquity s ->
             ( updateField
                 model
                 s
-                model.f_cd
+                model.f_ce
                 validateFloatField
-                (\m f -> { m | f_cd = f })
-                (\m c -> { m | c_cd = c })
+                (\m f -> { m | f_ce = f })
+                (\m c -> { m | c_ce = c })
             , Cmd.none
             )
 
@@ -419,7 +419,7 @@ viewContractForm model =
     Form.row [] <|
         List.concat
             [ viewField model.f_ct ChangeContractTerm
-            , viewField model.f_cd ChangeContractDeposit
+            , viewField model.f_ce ChangeSellerEquity
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
@@ -518,13 +518,13 @@ viewLandlord model =
     Alert.simpleSuccess []
         [ h3 [] [ text "Landlord" ]
         , ul []
-            [ li [] [ text <| "Borrows " ++ viewAsDollar model.loan.amount ]
+            [ li [] [ text <| "LVR " ++ viewAsPercent (lvrSeller model) ]
             , li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ++ " per week" ]
             ]
         , h4 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
         , ul []
             [ li [] [ text <| "Left to pay " ++ viewAsDollar (remainingLoan model) ]
-            , li [] [ text <| "ROI " ++ viewAsDollar (roiAmount model) ++ " (" ++ viewAsPercent (roiPercent model) ++ ")" ]
+            , li [] [ text <| "ROI " ++ viewAsDollar (roiAmount model) ]
             ]
         ]
 
@@ -546,7 +546,7 @@ viewTenant model =
                     , li [] [ text <| "House value increased by " ++ viewAsDollar (houseCapitalGain model) ]
                     ]
                 ]
-            , li [] [ text <| "Which represents " ++ viewAsPercent (depositRatio model) ++ " of the required loan" ]
+            , li [] [ text <| "LVR " ++ viewAsPercent (lvrBuyer model) ]
             ]
         ]
 
