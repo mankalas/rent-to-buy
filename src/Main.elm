@@ -223,7 +223,7 @@ lvrSeller model =
 
 lvrBuyer : Model -> Float
 lvrBuyer model =
-    1 - totalDeposit model / model.c_hv
+    model.loan.amount / (model.c_hv + totalDeposit model)
 
 
 remainingLoan : Model -> Float
