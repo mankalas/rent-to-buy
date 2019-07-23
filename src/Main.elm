@@ -59,6 +59,8 @@ type alias Model =
     , c_ct : Int
     , f_se : Field
     , c_se : Float
+    , f_sm : Field
+    , c_sm : Float
     , f_tax : Field
     , c_tax : Float
     , f_insur : Field
@@ -87,8 +89,10 @@ init _ =
             500.0
             (Field "Contract term (y)" "3" Nothing)
             3
-            (Field "Seller equity ($)" "400000" Nothing)
-            400000
+            (Field "Seller equity ($)" "300000" Nothing)
+            300000
+            (Field "Seller mortgage ($)" "100000" Nothing)
+            100000
             (Field "Tax ($/y)" "1000" Nothing)
             1000
             (Field "Insurance ($/y)" "1000" Nothing)
@@ -214,7 +218,7 @@ totalDeposit model =
 
 lvrSeller : Model -> Float
 lvrSeller model =
-    model.loan.amount / (model.c_se + model.c_hv)
+    (model.loan.amount + model.c_sm) / (model.c_se + model.c_hv)
 
 
 lvrBuyer : Model -> Float
@@ -360,6 +364,17 @@ update msg model =
             , Cmd.none
             )
 
+        ChangeSellerMortgage s ->
+            ( updateField
+                model
+                s
+                model.f_sm
+                validateFloatField
+                (\m f -> { m | f_sm = f })
+                (\m c -> { m | c_sm = c })
+            , Cmd.none
+            )
+
         ChangeContractTerm s ->
             ( updateField
                 model
@@ -436,8 +451,8 @@ viewContractForm model =
     Form.row [] <|
         List.concat
             [ viewField model.f_ct ChangeContractTerm
-            , [ Form.col [] [], Form.col [] [] ]
             , viewField model.f_se ChangeSellerEquity
+            , viewField model.f_sm ChangeSellerMortgage
             ]
 
 
