@@ -91,7 +91,7 @@ init _ =
             1000
             (Field "Insurance ($/y)" "1000" Nothing)
             1000
-            (Field "Tenant deposit ($/w)" "100" Nothing)
+            (Field "Buyer deposit ($/w)" "100" Nothing)
             100
     , Cmd.none
     )
@@ -113,8 +113,8 @@ type Msg
     | ChangePayment String
     | ChangeContractTerm String
     | ChangeSellerEquity String
-    | ChangeTenantDeposit String
     | ChangeSellerMortgage String
+    | ChangeBuyerDeposit String
 
 
 setError : ( String, List String ) -> Field -> Field
@@ -366,7 +366,7 @@ update msg model =
             , Cmd.none
             )
 
-        ChangeTenantDeposit s ->
+        ChangeBuyerDeposit s ->
             ( updateField
                 model
                 s
@@ -435,12 +435,12 @@ viewMaintenanceForm model =
             ]
 
 
-viewTenantForm : Model -> Html Msg
-viewTenantForm model =
+viewBuyerForm : Model -> Html Msg
+viewBuyerForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_twd ChangeTenantDeposit
             , [ Form.col [] [], Form.col [] [] ]
+            [ viewField model.f_twd ChangeBuyerDeposit
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
@@ -483,7 +483,7 @@ viewHouseCalculus model =
 viewLoanCalculus : Model -> Html Msg
 viewLoanCalculus model =
     Alert.simpleSecondary []
-        [ h3 [] [ text "Loan " ]
+        [ h3 [] [ text "Home Loan" ]
         , dl [] <|
             List.concat
                 [ viewCalculusField "Amount" <| viewAsDollar model.loan.amount
@@ -502,7 +502,7 @@ viewForm model =
         , viewLoanForm model
         , viewContractForm model
         , viewMaintenanceForm model
-        , viewTenantForm model
+        , viewBuyerForm model
         ]
 
 
@@ -514,10 +514,10 @@ t m =
     }
 
 
-viewLandlord : Model -> Html Msg
-viewLandlord model =
+viewSeller : Model -> Html Msg
+viewSeller model =
     Alert.simpleSuccess []
-        [ h3 [] [ text "Landlord" ]
+        [ h3 [] [ text "Seller" ]
         , ul []
             [ li [] [ text <| "LVR " ++ viewAsPercent (lvrSeller model) ]
             , li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ++ " per week" ]
@@ -530,13 +530,19 @@ viewLandlord model =
         ]
 
 
-viewTenant : Model -> Html Msg
-viewTenant model =
+viewBuyer : Model -> Html Msg
+viewBuyer model =
     Alert.simpleInfo []
-        [ h3 [] [ text "Tenant" ]
+        [ h3 [] [ text "Buyer" ]
         , ul []
             [ li [] [ text <| "Spends " ++ viewAsDollar (weeklySpending model) ++ " per week" ]
-            , li [] [ text <| "Including " ++ viewAsDollar model.c_twd ++ " deposit per week" ]
+            , li []
+                [ text "Including "
+                , ul []
+                    [ li [] [ text <| "Deposit " ++ viewAsDollar model.c_twd ++ " per week" ]
+                    , li [] [ text <| "Bond " ++ viewAsDollar model.c_tb ++ " per week" ]
+                    ]
+                ]
             ]
         , h4 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
         , ul []
@@ -544,7 +550,7 @@ viewTenant model =
                 [ text <| "Total deposit of " ++ viewAsDollar (totalDeposit model)
                 , ul []
                     [ li [] [ text <| "Cash deposit of " ++ viewAsDollar (builtDeposit model) ]
-                    , li [] [ text <| "House value increased by " ++ viewAsDollar (houseCapitalGain model) ]
+                    , li [] [ text <| "Equity gain " ++ viewAsDollar (houseCapitalGain model) ]
                     ]
                 ]
             , li [] [ text <| "LVR " ++ viewAsPercent (lvrBuyer model) ]
@@ -561,9 +567,9 @@ view model =
                 , viewForm model
                 , Grid.container []
                     [ Grid.row []
-                        [ Grid.col [ Col.xs2 ] [ viewLoanCalculus model ]
-                        , Grid.col [ Col.xs5 ] [ viewLandlord model ]
-                        , Grid.col [ Col.xs5 ] [ viewTenant model ]
+                        [ Grid.col [ Col.xs3 ] [ viewLoanCalculus model ]
+                        , Grid.col [ Col.xs4 ] [ viewSeller model ]
+                        , Grid.col [ Col.xs4 ] [ viewBuyer model ]
                         ]
                     ]
                 ]
