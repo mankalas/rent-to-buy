@@ -65,6 +65,8 @@ type alias Model =
     , c_insur : Float
     , f_twd : Field
     , c_twd : Float
+    , f_tb : Field
+    , c_tb : Float
     }
 
 
@@ -93,6 +95,8 @@ init _ =
             1000
             (Field "Buyer deposit ($/w)" "100" Nothing)
             100
+            (Field "Buyer bond ($/w)" "100" Nothing)
+            100
     , Cmd.none
     )
 
@@ -115,6 +119,7 @@ type Msg
     | ChangeSellerEquity String
     | ChangeSellerMortgage String
     | ChangeBuyerDeposit String
+    | ChangeBuyerBond String
 
 
 setError : ( String, List String ) -> Field -> Field
@@ -229,7 +234,7 @@ roiAmount model =
 
 weeklySpending : Model -> Float
 weeklySpending model =
-    model.c_pay + model.c_twd
+    model.c_pay + model.c_twd + model.c_tb
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -377,6 +382,17 @@ update msg model =
             , Cmd.none
             )
 
+        ChangeBuyerBond s ->
+            ( updateField
+                model
+                s
+                model.f_tb
+                validateFloatField
+                (\m f -> { m | f_tb = f })
+                (\m c -> { m | c_tb = c })
+            , Cmd.none
+            )
+
 
 
 -- VIEW
@@ -439,8 +455,8 @@ viewBuyerForm : Model -> Html Msg
 viewBuyerForm model =
     Form.row [] <|
         List.concat
-            , [ Form.col [] [], Form.col [] [] ]
             [ viewField model.f_twd ChangeBuyerDeposit
+            , viewField model.f_tb ChangeBuyerBond
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
