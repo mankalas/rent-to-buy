@@ -57,8 +57,8 @@ type alias Model =
     , c_pay : Float
     , f_ct : Field
     , c_ct : Int
-    , f_ce : Field
-    , c_ce : Float
+    , f_se : Field
+    , c_se : Float
     , f_tax : Field
     , c_tax : Float
     , f_insur : Field
@@ -114,6 +114,7 @@ type Msg
     | ChangeContractTerm String
     | ChangeSellerEquity String
     | ChangeTenantDeposit String
+    | ChangeSellerMortgage String
 
 
 setError : ( String, List String ) -> Field -> Field
@@ -208,7 +209,7 @@ totalDeposit model =
 
 lvrSeller : Model -> Float
 lvrSeller model =
-    model.loan.amount / (model.c_ce + model.c_hv)
+    model.loan.amount / (model.c_se + model.c_hv)
 
 
 lvrBuyer : Model -> Float
@@ -347,10 +348,10 @@ update msg model =
             ( updateField
                 model
                 s
-                model.f_ce
+                model.f_se
                 validateFloatField
-                (\m f -> { m | f_ce = f })
-                (\m c -> { m | c_ce = c })
+                (\m f -> { m | f_se = f })
+                (\m c -> { m | c_se = c })
             , Cmd.none
             )
 
@@ -419,8 +420,8 @@ viewContractForm model =
     Form.row [] <|
         List.concat
             [ viewField model.f_ct ChangeContractTerm
-            , viewField model.f_ce ChangeSellerEquity
             , [ Form.col [] [], Form.col [] [] ]
+            , viewField model.f_se ChangeSellerEquity
             ]
 
 
