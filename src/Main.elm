@@ -1,6 +1,7 @@
 module Main exposing (main)
 
 import Bootstrap.Alert as Alert
+import Bootstrap.Badge as B
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Grid as Grid
@@ -545,12 +546,25 @@ t m =
     }
 
 
+viewAsLvr : Float -> Html Msg
+viewAsLvr lvr =
+    div []
+        [ text <| "LVR " ++ viewAsPercent lvr ++ " "
+        , if lvr >= 0.8 then
+            B.badgeDanger [] [ text "Too high" ]
+
+          else
+            B.badgeSuccess [] [ text "Ok" ]
+        ]
+
+
 viewSeller : Model -> Html Msg
 viewSeller model =
     Alert.simpleSuccess []
         [ h3 [] [ text "Seller" ]
         , ul []
-            [ li [] [ text <| "LVR " ++ viewAsPercent (lvrSeller model) ]
+            [ li []
+                [ viewAsLvr (lvrSeller model) ]
             , li [] [ text <| "Pays " ++ viewAsDollar model.c_pay ++ " per week" ]
             ]
         , h4 [] [ text <| "After " ++ pluralize "year" "years" model.c_ct ]
@@ -584,7 +598,7 @@ viewBuyer model =
                     , li [] [ text <| "Equity gain " ++ viewAsDollar (houseCapitalGain model) ]
                     ]
                 ]
-            , li [] [ text <| "LVR " ++ viewAsPercent (lvrBuyer model) ]
+            , li [] [ viewAsLvr (lvrBuyer model) ]
             ]
         ]
 
