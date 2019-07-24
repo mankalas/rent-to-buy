@@ -41,11 +41,12 @@ main =
 
 
 type alias Field =
-    { name : String
+    { fieldType : FieldType
+    , name : String
     , value : String
     , error : Maybe String
     , popoverState : Popover.State
-    , popoverText : Html Msg
+    , popoverText : String
     }
 
 
@@ -83,40 +84,93 @@ noHelpText =
 
 
 houseValueHelpText =
-    div [] [ text """The value the house is
-    currently worth. That is the amount mentionned in the contract
-    between the Seller and the Buyer, ie. after x years, the Buyer is
-    going to buy the house from the Seller for that value.""" ]
+    """The value the house is currently worth. That
+    is the amount mentionned in the contract between the Seller and
+    the Buyer, ie. after x years, the Buyer is going to buy the house
+    from the Seller for that value."""
+
+
+houseRateHelpText =
+    """Expected Housing Market evolution."""
+
+
+houseExtrasHelpText =
+    """Possible extra amount of money required to improved the house once bought. This amount won't be taken into account when calculating the house value evolution according to market rate."""
+
+
+loanTermHelpText =
+    """The length of the loan in years."""
+
+
+loanRateHelpText =
+    """Annual compound interest."""
+
+
+paymentHelpText =
+    "N/A"
+
+
+contractTermHelpText =
+    """Number of years after which the Buyer will buy the house to the Seller for the agreed price. This duration can be amended if the Buyer encouters financial difficulties."""
+
+
+sellerEquityHelpText =
+    """Value of the Seller's equity, ie. the total value of paid off mortgages (for instance, if you've paid $200k off a $500k loan, your equity is $200k)."""
+
+
+sellerMortgageHelpText =
+    """Value of the Seller's mortgage in progress (for instance, if you've paid $200k off a $500k loan, your equity is $300k)."""
+
+
+ratesHelpText =
+    """Estimated amount of yearly rates due once owning the house. This enters into the weekly payment calculation."""
+
+
+insuranceHelpText =
+    """Estimated amount of yearly insurance due once owning the house. This enters into the weekly payment calculation."""
+
+
+buyerDepositHelpText =
+    """Weekly amount of money the Buyer intends on saving in order to build a deposit at the end of the contract."""
+
+
+buyerBondHelpText =
+    """Weekly amount of money the Buyer gives to the Seller. This money is to be given back once the Buyer buys the house to the Seller."""
+
+
+initField : FieldType -> String -> String -> String -> Field
+initField fieldType label value helpText =
+    Field fieldType label value Nothing Popover.initialState helpText
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( updateCalculations <|
         Model
-            (Field "House value ($)" "450000" Nothing Popover.initialState houseValueHelpText)
+            (initField HouseValue "House value ($)" "450000" houseValueHelpText)
             450000.0
-            (Field "Market rate (%)" "10" Nothing Popover.initialState noHelpText)
+            (initField HouseRate "Market rate (%)" "10" houseRateHelpText)
             0.1
-            (Field "House extras ($)" "0" Nothing Popover.initialState noHelpText)
+            (initField HouseExtras "House extras ($)" "0" houseExtrasHelpText)
             0
-            (Field "Home Loan term (y)" "25" Nothing Popover.initialState noHelpText)
-            (Field "Home Loan rate (%)" "5" Nothing Popover.initialState noHelpText)
+            (initField LoanTerm "Home Loan term (y)" "25" loanTermHelpText)
+            (initField LoanRate "Home Loan rate (%)" "5" loanRateHelpText)
             (Loan.Model (52 * 25) 0.05 500000)
-            (Field "Payment ($/w)" "500" Nothing Popover.initialState noHelpText)
+            (initField Payment "Payment ($/w)" "500" paymentHelpText)
             500.0
-            (Field "Contract term (y)" "3" Nothing Popover.initialState noHelpText)
+            (initField ContractTerm "Contract term (y)" "3" contractTermHelpText)
             3
-            (Field "Seller equity ($)" "300000" Nothing Popover.initialState noHelpText)
+            (initField SellerEquity "Seller equity ($)" "300000" sellerEquityHelpText)
             300000
-            (Field "Seller mortgage ($)" "100000" Nothing Popover.initialState noHelpText)
+            (initField SellerMortgage "Seller mortgage ($)" "100000" sellerMortgageHelpText)
             100000
-            (Field "Rates ($/y)" "1000" Nothing Popover.initialState noHelpText)
+            (initField Rates "Rates ($/y)" "1000" ratesHelpText)
             1000
-            (Field "Insurance ($/y)" "1000" Nothing Popover.initialState noHelpText)
+            (initField Insurance "Insurance ($/y)" "1000" insuranceHelpText)
             1000
-            (Field "Buyer deposit ($/w)" "100" Nothing Popover.initialState noHelpText)
+            (initField BuyerDeposit "Buyer deposit ($/w)" "100" buyerDepositHelpText)
             100
-            (Field "Buyer bond ($/w)" "100" Nothing Popover.initialState noHelpText)
+            (initField BuyerBond "Buyer bond ($/w)" "100" buyerBondHelpText)
             100
     , Cmd.none
     )
@@ -124,6 +178,22 @@ init _ =
 
 
 -- UPDATE
+
+
+type FieldType
+    = HouseValue
+    | HouseExtras
+    | HouseRate
+    | LoanRate
+    | LoanTerm
+    | Insurance
+    | Rates
+    | Payment
+    | ContractTerm
+    | SellerEquity
+    | SellerMortgage
+    | BuyerDeposit
+    | BuyerBond
 
 
 type Msg
@@ -141,8 +211,7 @@ type Msg
     | ChangeSellerMortgage String
     | ChangeBuyerDeposit String
     | ChangeBuyerBond String
-    | HouseValuePopoverMsg Popover.State
-    | PopoverMsg Popover.State
+    | PopoverMsg Field Popover.State
 
 
 setError : ( String, List String ) -> Field -> Field
@@ -427,28 +496,59 @@ update msg model =
             , Cmd.none
             )
 
-        HouseValuePopoverMsg s ->
-            ( let
-                f_hv =
-                    model.f_hv
+        PopoverMsg f s ->
+            ( updateFieldPopover { f | popoverState = s } model, Cmd.none )
 
-                n_f_hv =
-                    { f_hv | popoverState = s }
-              in
-              { model | f_hv = n_f_hv }
-            , Cmd.none
-            )
 
-        PopoverMsg s ->
-            ( model, Cmd.none )
+updateFieldPopover : Field -> Model -> Model
+updateFieldPopover f m =
+    case f.fieldType of
+        HouseValue ->
+            { m | f_hv = f }
+
+        HouseExtras ->
+            { m | f_he = f }
+
+        HouseRate ->
+            { m | f_hr = f }
+
+        LoanRate ->
+            { m | f_lr = f }
+
+        LoanTerm ->
+            { m | f_lt = f }
+
+        Insurance ->
+            { m | f_insur = f }
+
+        Rates ->
+            { m | f_rates = f }
+
+        Payment ->
+            { m | f_pay = f }
+
+        ContractTerm ->
+            { m | f_ct = f }
+
+        SellerEquity ->
+            { m | f_se = f }
+
+        SellerMortgage ->
+            { m | f_sm = f }
+
+        BuyerDeposit ->
+            { m | f_twd = f }
+
+        BuyerBond ->
+            { m | f_tb = f }
 
 
 
 -- VIEW
 
 
-viewField : Field -> (String -> Msg) -> (Popover.State -> Msg) -> List (Form.Col Msg)
-viewField f msg popoverMsg =
+viewField : Field -> (String -> Msg) -> List (Form.Col Msg)
+viewField f msg =
     [ Form.colLabelSm []
         [ text f.name
         , Popover.config
@@ -456,13 +556,13 @@ viewField f msg popoverMsg =
                 [ Button.small
                 , Button.primary
                 , Button.attrs <|
-                    Popover.onHover f.popoverState popoverMsg
+                    Popover.onHover f.popoverState (PopoverMsg f)
                 ]
                 [ text "?" ]
             )
             |> Popover.right
             |> Popover.content []
-                [ f.popoverText ]
+                [ text <| f.popoverText ]
             |> Popover.view f.popoverState
         ]
     , Form.col []
@@ -480,9 +580,9 @@ viewHouseForm : Model -> Html Msg
 viewHouseForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_hv ChangeHouseValue HouseValuePopoverMsg
-            , viewField model.f_hr ChangeHouseRate PopoverMsg
-            , viewField model.f_he ChangeHouseExtras PopoverMsg
+            [ viewField model.f_hv ChangeHouseValue
+            , viewField model.f_hr ChangeHouseRate
+            , viewField model.f_he ChangeHouseExtras
             ]
 
 
@@ -490,8 +590,8 @@ viewLoanForm : Model -> Html Msg
 viewLoanForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_lt ChangeLoanTerm PopoverMsg
-            , viewField model.f_lr ChangeLoanRate PopoverMsg
+            [ viewField model.f_lt ChangeLoanTerm
+            , viewField model.f_lr ChangeLoanRate
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
@@ -500,9 +600,9 @@ viewContractForm : Model -> Html Msg
 viewContractForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_ct ChangeContractTerm PopoverMsg
-            , viewField model.f_se ChangeSellerEquity PopoverMsg
-            , viewField model.f_sm ChangeSellerMortgage PopoverMsg
+            [ viewField model.f_ct ChangeContractTerm
+            , viewField model.f_se ChangeSellerEquity
+            , viewField model.f_sm ChangeSellerMortgage
             ]
 
 
@@ -510,8 +610,8 @@ viewMaintenanceForm : Model -> Html Msg
 viewMaintenanceForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_rates ChangeRates PopoverMsg
-            , viewField model.f_insur ChangeInsurance PopoverMsg
+            [ viewField model.f_rates ChangeRates
+            , viewField model.f_insur ChangeInsurance
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
@@ -520,8 +620,8 @@ viewBuyerForm : Model -> Html Msg
 viewBuyerForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_twd ChangeBuyerDeposit PopoverMsg
-            , viewField model.f_tb ChangeBuyerBond PopoverMsg
+            [ viewField model.f_twd ChangeBuyerDeposit
+            , viewField model.f_tb ChangeBuyerBond
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
