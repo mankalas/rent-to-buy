@@ -552,12 +552,8 @@ viewField f msg =
     [ Form.colLabelSm []
         [ text f.name
         , Popover.config
-            (Button.button
-                [ Button.small
-                , Button.primary
-                , Button.attrs <|
-                    Popover.onHover f.popoverState (PopoverMsg f)
-                ]
+            (B.badgeInfo
+                (Popover.onHover f.popoverState (PopoverMsg f))
                 [ text "?" ]
             )
             |> Popover.right
