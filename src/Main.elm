@@ -66,10 +66,10 @@ type alias Model =
     , c_tax : Float
     , f_insur : Field
     , c_insur : Float
-    , f_twd : Field
-    , c_twd : Float
-    , f_tb : Field
-    , c_tb : Float
+    , f_bd : Field
+    , c_bd : Float
+    , f_bb : Field
+    , c_bb : Float
     }
 
 
@@ -204,7 +204,7 @@ calculateLoanAmount model =
 
 builtDeposit : Model -> Float
 builtDeposit model =
-    model.c_twd * 52 * toFloat model.c_ct
+    model.c_bd * 52 * toFloat model.c_ct
 
 
 houseCapitalGain : Model -> Float
@@ -239,7 +239,7 @@ roiAmount model =
 
 weeklySpending : Model -> Float
 weeklySpending model =
-    model.c_pay + model.c_twd + model.c_tb
+    model.c_pay + model.c_bd + model.c_bb
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -391,10 +391,10 @@ update msg model =
             ( updateField
                 model
                 s
-                model.f_twd
+                model.f_bd
                 validateFloatField
-                (\m f -> { m | f_twd = f })
-                (\m c -> { m | c_twd = c })
+                (\m f -> { m | f_bd = f })
+                (\m c -> { m | c_bd = c })
             , Cmd.none
             )
 
@@ -402,10 +402,10 @@ update msg model =
             ( updateField
                 model
                 s
-                model.f_tb
+                model.f_bb
                 validateFloatField
-                (\m f -> { m | f_tb = f })
-                (\m c -> { m | c_tb = c })
+                (\m f -> { m | f_bb = f })
+                (\m c -> { m | c_bb = c })
             , Cmd.none
             )
 
@@ -471,8 +471,8 @@ viewBuyerForm : Model -> Html Msg
 viewBuyerForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_twd ChangeBuyerDeposit
-            , viewField model.f_tb ChangeBuyerBond
+            [ viewField model.f_bd ChangeBuyerDeposit
+            , viewField model.f_bb ChangeBuyerBond
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
@@ -584,8 +584,8 @@ viewBuyer model =
             , li []
                 [ text "Including "
                 , ul []
-                    [ li [] [ text <| "Deposit " ++ viewAsDollar model.c_twd ++ " per week" ]
-                    , li [] [ text <| "Bond " ++ viewAsDollar model.c_tb ++ " per week" ]
+                    [ li [] [ text <| "Deposit " ++ viewAsDollar model.c_bd ++ " per week" ]
+                    , li [] [ text <| "Bond " ++ viewAsDollar model.c_bb ++ " per week" ]
                     ]
                 ]
             ]
