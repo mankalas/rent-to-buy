@@ -45,6 +45,7 @@ type alias Field =
     , value : String
     , error : Maybe String
     , popoverState : Popover.State
+    , popoverText : Html Msg
     }
 
 
@@ -77,34 +78,45 @@ type alias Model =
     }
 
 
+noHelpText =
+    text ""
+
+
+houseValueHelpText =
+    div [] [ text """The value the house is
+    currently worth. That is the amount mentionned in the contract
+    between the Seller and the Buyer, ie. after x years, the Buyer is
+    going to buy the house from the Seller for that value.""" ]
+
+
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( updateCalculations <|
         Model
-            (Field "House value ($)" "450000" Nothing Popover.initialState)
+            (Field "House value ($)" "450000" Nothing Popover.initialState houseValueHelpText)
             450000.0
-            (Field "Market rate (%)" "10" Nothing Popover.initialState)
+            (Field "Market rate (%)" "10" Nothing Popover.initialState noHelpText)
             0.1
-            (Field "House extras ($)" "0" Nothing Popover.initialState)
+            (Field "House extras ($)" "0" Nothing Popover.initialState noHelpText)
             0
-            (Field "Home Loan term (y)" "25" Nothing Popover.initialState)
-            (Field "Home Loan rate (%)" "5" Nothing Popover.initialState)
+            (Field "Home Loan term (y)" "25" Nothing Popover.initialState noHelpText)
+            (Field "Home Loan rate (%)" "5" Nothing Popover.initialState noHelpText)
             (Loan.Model (52 * 25) 0.05 500000)
-            (Field "Payment ($/w)" "500" Nothing Popover.initialState)
+            (Field "Payment ($/w)" "500" Nothing Popover.initialState noHelpText)
             500.0
-            (Field "Contract term (y)" "3" Nothing Popover.initialState)
+            (Field "Contract term (y)" "3" Nothing Popover.initialState noHelpText)
             3
-            (Field "Seller equity ($)" "300000" Nothing Popover.initialState)
+            (Field "Seller equity ($)" "300000" Nothing Popover.initialState noHelpText)
             300000
-            (Field "Seller mortgage ($)" "100000" Nothing Popover.initialState)
+            (Field "Seller mortgage ($)" "100000" Nothing Popover.initialState noHelpText)
             100000
-            (Field "Rates ($/y)" "1000" Nothing Popover.initialState)
+            (Field "Rates ($/y)" "1000" Nothing Popover.initialState noHelpText)
             1000
-            (Field "Insurance ($/y)" "1000" Nothing Popover.initialState)
+            (Field "Insurance ($/y)" "1000" Nothing Popover.initialState noHelpText)
             1000
-            (Field "Buyer deposit ($/w)" "100" Nothing Popover.initialState)
+            (Field "Buyer deposit ($/w)" "100" Nothing Popover.initialState noHelpText)
             100
-            (Field "Buyer bond ($/w)" "100" Nothing Popover.initialState)
+            (Field "Buyer bond ($/w)" "100" Nothing Popover.initialState noHelpText)
             100
     , Cmd.none
     )
@@ -130,6 +142,7 @@ type Msg
     | ChangeBuyerDeposit String
     | ChangeBuyerBond String
     | HouseValuePopoverMsg Popover.State
+    | PopoverMsg Popover.State
 
 
 setError : ( String, List String ) -> Field -> Field
@@ -426,12 +439,16 @@ update msg model =
             , Cmd.none
             )
 
+        PopoverMsg s ->
+            ( model, Cmd.none )
+
 
 
 -- VIEW
 
 
-viewField f msg =
+viewField : Field -> (String -> Msg) -> (Popover.State -> Msg) -> List (Form.Col Msg)
+viewField f msg popoverMsg =
     [ Form.colLabelSm []
         [ text f.name
         , Popover.config
@@ -439,14 +456,13 @@ viewField f msg =
                 [ Button.small
                 , Button.primary
                 , Button.attrs <|
-                    Popover.onHover f.popoverState HouseValuePopoverMsg
+                    Popover.onHover f.popoverState popoverMsg
                 ]
                 [ text "?" ]
             )
             |> Popover.right
-            |> Popover.titleH4 [] [ text "Username help" ]
             |> Popover.content []
-                [ text "Your username must not contain numbers..." ]
+                [ f.popoverText ]
             |> Popover.view f.popoverState
         ]
     , Form.col []
@@ -464,9 +480,9 @@ viewHouseForm : Model -> Html Msg
 viewHouseForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_hv ChangeHouseValue
-            , viewField model.f_hr ChangeHouseRate
-            , viewField model.f_he ChangeHouseExtras
+            [ viewField model.f_hv ChangeHouseValue HouseValuePopoverMsg
+            , viewField model.f_hr ChangeHouseRate PopoverMsg
+            , viewField model.f_he ChangeHouseExtras PopoverMsg
             ]
 
 
@@ -474,8 +490,8 @@ viewLoanForm : Model -> Html Msg
 viewLoanForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_lt ChangeLoanTerm
-            , viewField model.f_lr ChangeLoanRate
+            [ viewField model.f_lt ChangeLoanTerm PopoverMsg
+            , viewField model.f_lr ChangeLoanRate PopoverMsg
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
@@ -484,9 +500,9 @@ viewContractForm : Model -> Html Msg
 viewContractForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_ct ChangeContractTerm
-            , viewField model.f_se ChangeSellerEquity
-            , viewField model.f_sm ChangeSellerMortgage
+            [ viewField model.f_ct ChangeContractTerm PopoverMsg
+            , viewField model.f_se ChangeSellerEquity PopoverMsg
+            , viewField model.f_sm ChangeSellerMortgage PopoverMsg
             ]
 
 
@@ -494,8 +510,8 @@ viewMaintenanceForm : Model -> Html Msg
 viewMaintenanceForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_rates ChangeRates
-            , viewField model.f_insur ChangeInsurance
+            [ viewField model.f_rates ChangeRates PopoverMsg
+            , viewField model.f_insur ChangeInsurance PopoverMsg
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
@@ -504,8 +520,8 @@ viewBuyerForm : Model -> Html Msg
 viewBuyerForm model =
     Form.row [] <|
         List.concat
-            [ viewField model.f_twd ChangeBuyerDeposit
-            , viewField model.f_tb ChangeBuyerBond
+            [ viewField model.f_twd ChangeBuyerDeposit PopoverMsg
+            , viewField model.f_tb ChangeBuyerBond PopoverMsg
             , [ Form.col [] [], Form.col [] [] ]
             ]
 
